@@ -1,5 +1,6 @@
 package emi.lib.mtg.scryfall;
 
+import emi.lib.Service;
 import emi.lib.mtg.card.Card;
 import emi.lib.mtg.card.CardFace;
 import emi.lib.mtg.card.CardFaceExtended;
@@ -14,6 +15,8 @@ import emi.lib.scryfall.api.enums.Rarity;
 
 import java.util.*;
 
+@Service.Provider(CardSource.class)
+@Service.Property.String(name="name", value="Scryfall")
 public class ScryfallCardSource implements CardSource {
 	private static int or(Integer i) {
 		return i != null ? i : -1;
@@ -68,11 +71,6 @@ public class ScryfallCardSource implements CardSource {
 
 				@Override
 				public java.util.Set<Color> color() {
-					if (this.color == null) {
-						this.color = backingCard.colors.stream()
-								.map(c -> c.mapped)
-					}
-
 					return null;
 				}
 
@@ -228,6 +226,7 @@ public class ScryfallCardSource implements CardSource {
 					case Split:
 					case Flip:
 						assert backingCard.cardFaces != null && backingCard.cardFaces.size() == 2;
+
 						break;
 					case Transform:
 					case Meld:
