@@ -1,5 +1,6 @@
 package emi.lib.mtg.scryfall;
 
+import com.google.gson.stream.JsonWriter;
 import emi.lib.Service;
 import emi.lib.mtg.card.Card;
 import emi.lib.mtg.card.CardFace;
@@ -9,15 +10,27 @@ import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
 import emi.lib.mtg.characteristic.impl.BasicManaCost;
 import emi.lib.mtg.data.CardSet;
 import emi.lib.mtg.data.CardSource;
+import emi.lib.scryfall.PagedList;
 import emi.lib.scryfall.Scryfall;
+import emi.lib.scryfall.api.ApiObjectList;
 import emi.lib.scryfall.api.Set;
 import emi.lib.scryfall.api.enums.Rarity;
 
+import java.io.*;
 import java.util.*;
+import java.util.concurrent.Executors;
 
 @Service.Provider(CardSource.class)
 @Service.Property.String(name="name", value="Scryfall")
 public class ScryfallCardSource implements CardSource {
+	private static final File PARENT_DIR = new File(new File("data"), "scryfall");
+
+	static {
+		if (!PARENT_DIR.exists() && !PARENT_DIR.mkdirs()) {
+			throw new Error("Couldn't create data/scryfall directory.");
+		}
+	}
+
 	private static int or(Integer i) {
 		return i != null ? i : -1;
 	}
@@ -25,8 +38,6 @@ public class ScryfallCardSource implements CardSource {
 	private static String or(String s) {
 		return s != null ? s : "";
 	}
-
-	private final Scryfall api;
 
 	private class ScryfallSet implements CardSet {
 		private class ScryfallCard implements Card {
@@ -325,8 +336,48 @@ public class ScryfallCardSource implements CardSource {
 		}
 	}
 
-	public ScryfallCardSource() {
-		this.api = new Scryfall();
+	public ScryfallCardSource() throws IOException {
+		try (FileReader reader = new FileReader(new File(PARENT_DIR, "sets.json"))) {
+			// do a thing
+		} catch (FileNotFoundException fnfe) {
+			Thread th = new Thread(() -> {
+				Scryfall api = new Scryfall();
+
+				PagedList<Set> sets = api.sets();
+
+				try (FileWriter writer = new FileWriter(new File(PARENT_DIR, "cards.json"))) {
+					JsonWriter jw = Scryfall.GSON.newJsonWriter(writer);
+
+					jw.beginObject();
+
+					for (Set set : sets) {
+						System.out.print("Downloading " + set.name + "... ");
+						System.out.flush();
+
+						try (FileWriter setWriter = new FileWriter(new File(PARENT_DIR, String.format("%s.json", set.code)))) {
+							Scryfall.GSON.toJson(set, setWriter);
+						} catch (IOException ioe) {
+							ioe.printStackTrace();
+						}
+
+						PagedList<emi.lib.scryfall.api.Card> cards = api.query(String.format("e:%s", set.code));
+
+						for (emi.lib.scryfall.api.Card card : cards) {
+							jw.name(card.id.toString());
+							Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, jw);
+						}
+
+						System.out.println("Done.");
+					}
+
+					jw.endObject();
+				} catch (IOException ioe) {
+					ioe.printStackTrace();
+				}
+			}, "Scryfall Card Downloading Thread");
+			th.setDaemon(true);
+			th.start();
+		}
 	}
 
 	@Override
@@ -337,5 +388,11 @@ public class ScryfallCardSource implements CardSource {
 	@Override
 	public Card get(UUID id) {
 		return null;
+	}
+
+	public static void main(String[] args) throws IOException {
+		new ScryfallCardSource();
+
+		System.in.read();
 	}
 }
