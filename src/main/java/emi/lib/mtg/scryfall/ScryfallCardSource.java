@@ -337,7 +337,7 @@ public class ScryfallCardSource implements CardSource {
 	}
 
 	public ScryfallCardSource() throws IOException {
-		try (FileReader reader = new FileReader(new File(PARENT_DIR, "sets.json"))) {
+		try (FileReader reader = new FileReader(new File(PARENT_DIR, "cards.json"))) {
 			// do a thing
 		} catch (FileNotFoundException fnfe) {
 			Thread th = new Thread(() -> {
