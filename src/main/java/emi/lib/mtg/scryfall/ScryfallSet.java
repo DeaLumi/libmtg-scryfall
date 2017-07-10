@@ -97,7 +97,7 @@ public class ScryfallSet implements CardSet {
 			private final CardTypeLine typeLine;
 
 			public ScryfallCardFace(String manaCost, Set<emi.lib.scryfall.api.enums.Color> color, Set<emi.lib.scryfall.api.enums.Color> colorIdentity, String typeLine) {
-				this.manaCost = new BasicManaCost(or(manaCost, ""));
+				this.manaCost = BasicManaCost.parse(or(manaCost, ""));
 				this.color = mapColor(orEmpty(color));
 				this.colorIdentity = mapColor(orEmpty(colorIdentity));
 				this.typeLine = BasicCardTypeLine.parse(or(typeLine, ""));
@@ -323,17 +323,54 @@ public class ScryfallSet implements CardSet {
 
 		private final emi.lib.scryfall.api.Card source;
 		private final Map<CardFace.Kind, ScryfallCardFace> faces;
+		private final Set<Color> color, colorIdentity;
+		private final CardRarity rarity;
 
-		public ScryfallCard(Map<URL, emi.lib.scryfall.api.Card> parts, emi.lib.scryfall.api.Card source) {
+		public ScryfallCard(Map<String, emi.lib.scryfall.api.Card> parts, emi.lib.scryfall.api.Card source) {
 			this.source = source;
 
 			this.faces = new EnumMap<>(CardFace.Kind.class);
 
 			switch (source.layout) {
+				case Normal: {
+					// TODO: Oh my god this is all so gross.
+					if (source.cardFaces != null && !source.cardFaces.isEmpty()) {
+						// Right now, the only card that trips this behavior is Curse of the Fire Penguin.
+						if ("Curse of the Fire Penguin // ???".equals(source.name)) {
+							this.faces.put(CardFace.Kind.Front, new ScryfallCardFlipFace(CardFace.Kind.Front, source.cardFaces.get(0)));
+							this.faces.put(CardFace.Kind.Flipped, new ScryfallCardFlipFace(CardFace.Kind.Flipped, source.cardFaces.get(1)));
+						} else {
+							System.err.println("Add support for fancy split/flip card " + source.name);
+						}
+					} else if (source.allParts != null && source.allParts.size() > 1) {
+						if ("Who".equals(source.name) || "What".equals(source.name) || "When".equals(source.name) || "Where".equals(source.name) || "Why".equals(source.name)) {
+							// oh god
+							System.err.println("I'm not supporting Who // What // When // Where // Why. I simply won't.");
+							this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
+						} else if ("B.F.M. (Big Furry Monster)".equals(source.name)) {
+							// eh
+							this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
+						} else if (source.allParts.size() == 2) {
+							if (source.allParts.stream().filter(p -> !source.name.equals(p.name)).findAny().get().uri.getPath().matches("/cards/t[a-z]{3}/[0-9]+")) {
+								// eh
+								this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
+							} else {
+								System.err.println("Add support for fancy multipart card " + source.name);
+								this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
+							}
+						} else {
+							System.err.println("Add support for fancy multipart card " + source.name);
+							this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
+						}
+					} else {
+						this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
+					}
+					break;
+				}
+
 				case Plane:
 				case Token:
 				case Emblem:
-				case Normal:
 				case Scheme:
 				case Leveler:
 				case Vanguard:
@@ -341,11 +378,11 @@ public class ScryfallSet implements CardSet {
 					this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
 					break;
 
-					// TODO: CLEAN THESE UP!
 				case Meld: {
 					this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
 
-					emi.lib.scryfall.api.Card part = parts.get(source.allParts.stream().map(p -> p.uri).filter(url -> url.toString().endsWith("b")).findAny().get());
+					// TODO: There needs to be a nicer way to find the melded card (the 'b-half'). We could just try both other cards, since the 'a-halves' don't get stored in parts.
+					emi.lib.scryfall.api.Card part = parts.get(source.allParts.stream().filter(p -> p.uri.toString().endsWith("b")).findAny().get().name);
 					this.faces.put(CardFace.Kind.Transformed, new ScryfallCardPartFace(CardFace.Kind.Transformed, part));
 					break;
 				}
@@ -353,7 +390,7 @@ public class ScryfallSet implements CardSet {
 				case Transform: {
 					this.faces.put(CardFace.Kind.Front, new ScryfallCardSingleFace());
 
-					emi.lib.scryfall.api.Card part = parts.get(source.allParts.stream().map(p -> p.uri).filter(url -> url.toString().endsWith("b")).findAny().get());
+					emi.lib.scryfall.api.Card part = parts.get(source.allParts.stream().map(p -> p.name).filter(pn -> !source.name.equals(pn)).findAny().get());
 					this.faces.put(CardFace.Kind.Transformed, new ScryfallCardPartFace(CardFace.Kind.Transformed, part));
 					break;
 				}
@@ -374,6 +411,32 @@ public class ScryfallSet implements CardSet {
 					assert false : "Bwuh?";
 					break;
 			}
+
+			this.color = mapColor(source.colors);
+			this.colorIdentity = mapColor(source.colorIdentity);
+
+			switch (source.rarity) {
+				case Common:
+					if (this.source.typeLine.contains("Basic Land")) {
+						this.rarity = CardRarity.BasicLand;
+					} else {
+						this.rarity = CardRarity.Common;
+					}
+					break;
+				case Uncommon:
+					this.rarity = CardRarity.Uncommon;
+					break;
+				case Rare:
+					this.rarity = CardRarity.Rare;
+					break;
+				case Mythic:
+					this.rarity = CardRarity.MythicRare;
+					break;
+				default: // TODO: Do some 'special' rarity calculation?
+					assert false : "Bwuh?";
+					this.rarity = CardRarity.Special;
+					break;
+			}
 		}
 
 		@Override
@@ -388,33 +451,17 @@ public class ScryfallSet implements CardSet {
 
 		@Override
 		public Set<Color> color() {
-			return mapColor(this.source.colors); // TODO cache this?
+			return this.color;
 		}
 
 		@Override
 		public Set<Color> colorIdentity() {
-			return mapColor(this.source.colorIdentity); // TODO cache this?
+			return this.colorIdentity;
 		}
 
 		@Override
 		public CardRarity rarity() {
-			switch (this.source.rarity) { // TODO: Cache this?
-				case Common:
-					if (this.source.typeLine.contains("Basic Land")) {
-						return CardRarity.BasicLand;
-					}
-
-					return CardRarity.Common;
-				case Uncommon:
-					return CardRarity.Uncommon;
-				case Rare:
-					return CardRarity.Rare;
-				case Mythic:
-					return CardRarity.MythicRare;
-				default: // TODO: Do some 'special' rarity calculation?
-					assert false : "Bwuh?";
-					return null;
-			}
+			return this.rarity;
 		}
 
 		@Override
@@ -436,17 +483,17 @@ public class ScryfallSet implements CardSet {
 	private final emi.lib.scryfall.api.Set set;
 	private final List<ScryfallCard> cards;
 
-	public ScryfallSet(Scryfall api, emi.lib.scryfall.api.Set set, List<emi.lib.scryfall.api.Card> cards) {
+	public ScryfallSet(emi.lib.scryfall.api.Set set, final List<emi.lib.scryfall.api.Card> allCards) {
 		this.set = set;
 
 		// Extract all transform/meld "B-sides" and store them.
-		Map<URL, emi.lib.scryfall.api.Card> parts = cards.parallelStream()
+		Map<String, emi.lib.scryfall.api.Card> parts = allCards.parallelStream()
 				.filter(c -> c.layout == CardLayout.Transform || c.layout == CardLayout.Meld)
-				.filter(c -> c.collectorNumber.endsWith("b"))
-				.collect(Collectors.toMap(c -> c.scryfallUri, c -> c));
+				.filter(c -> c.collectorNumber.matches("[0-9]+[b-z]$"))
+				.collect(Collectors.toMap(c -> c.name, c -> c));
 
-		this.cards = cards.parallelStream()
-				.filter(c -> c.layout != CardLayout.Transform && c.layout != CardLayout.Meld || !c.collectorNumber.endsWith("b"))
+		this.cards = allCards.parallelStream()
+				.filter(c -> (c.layout != CardLayout.Transform && c.layout != CardLayout.Meld) || !c.collectorNumber.matches("[0-9]+[b-z]$"))
 				.map(c -> new ScryfallCard(parts, c))
 				.collect(Collectors.toList());
 	}
