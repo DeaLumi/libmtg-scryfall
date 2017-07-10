@@ -3,10 +3,14 @@ package emi.lib.mtg.scryfall;
 import emi.lib.Service;
 import emi.lib.mtg.card.CardFace;
 import emi.lib.mtg.data.ImageSource;
+import javafx.concurrent.Task;
+import javafx.scene.image.Image;
 
+import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.*;
 
 @Service.Provider(ImageSource.class)
 @Service.Property.String(name="name", value="Scryfall HQ")
@@ -56,11 +60,22 @@ public class ScryfallImageSource implements ImageSource {
 				throw new IOException("Couldn't create parent directory for set " + card.setName);
 			}
 
-			return new File(setDir, card.id.toString());
+			return new File(setDir, String.format("%s.png", card.id.toString()));
 		} else {
 			return null;
 		}
 	}
+
+	private static final long DOWNLOAD_DELAY = 500;
+
+	private static final ScheduledExecutorService DOWNLOAD_POOL = new ScheduledThreadPoolExecutor(1, r -> {
+		Thread th = Executors.defaultThreadFactory().newThread(r);
+		th.setName("Scryfall Image Downloader");
+		th.setDaemon(true);
+		return th;
+	});
+
+	private long nextDownload = System.currentTimeMillis();
 
 	@Override
 	public InputStream open(CardFace face) throws IOException {
@@ -71,29 +86,46 @@ public class ScryfallImageSource implements ImageSource {
 		}
 
 		if (!f.exists()) {
-			URL imageUrl = imageUrl(face);
+			long delay;
+			synchronized (this) {
+				long now = System.currentTimeMillis();
+				nextDownload = Math.max(nextDownload + DOWNLOAD_DELAY, now);
+				delay = now - nextDownload;
+			}
 
-			if (imageUrl == null) {
-				System.err.println("Weird -- couldn't generate an image URL despite having a ScryfallCardFace?");
+			Future<Void> imageDownloadTask = DOWNLOAD_POOL.schedule(() -> {
+				URL imageUrl = imageUrl(face);
+
+				if (imageUrl == null) {
+					System.err.println("Weird -- couldn't generate an image URL despite having a ScryfallCardFace?");
+					return null;
+				}
+
+				HttpURLConnection connection = (HttpURLConnection) imageUrl.openConnection();
+
+				if (connection.getResponseCode() != 200) {
+					throw new IOException("Response from server was not OK.");
+				}
+
+				InputStream in = connection.getInputStream();
+				ImageIO.write(ImageIO.read(connection.getInputStream()), "png", f);
+
 				return null;
+			}, delay, TimeUnit.MILLISECONDS);
+
+			while (!imageDownloadTask.isDone()) {
+				try {
+					Thread.sleep(5);
+				} catch (InterruptedException ie) {
+					throw new IOException(ie);
+				}
 			}
 
-			HttpURLConnection connection = (HttpURLConnection) imageUrl.openConnection();
-
-			if (connection.getResponseCode() != 200) {
-				throw new IOException("Response from server was not OK.");
+			try {
+				imageDownloadTask.get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new IOException(e);
 			}
-
-			InputStream in = connection.getInputStream();
-			FileOutputStream out = new FileOutputStream(f);
-			byte[] buffer = new byte[4096];
-			int read = -1;
-			while ((read = in.read(buffer)) >= 0) {
-				out.write(buffer, 0, read);
-			}
-			out.flush();
-			out.close();
-			in.close();
 		}
 
 		return new FileInputStream(f);
