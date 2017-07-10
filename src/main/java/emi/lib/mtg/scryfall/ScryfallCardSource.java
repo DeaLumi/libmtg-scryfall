@@ -1,27 +1,19 @@
 package emi.lib.mtg.scryfall;
 
-import com.google.gson.stream.JsonWriter;
+import com.google.common.reflect.TypeToken;
 import emi.lib.Service;
 import emi.lib.mtg.card.Card;
-import emi.lib.mtg.card.CardFace;
-import emi.lib.mtg.card.CardFaceExtended;
-import emi.lib.mtg.characteristic.*;
-import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
-import emi.lib.mtg.characteristic.impl.BasicManaCost;
 import emi.lib.mtg.data.CardSet;
 import emi.lib.mtg.data.CardSource;
-import emi.lib.scryfall.PagedList;
 import emi.lib.scryfall.Scryfall;
-import emi.lib.scryfall.api.ApiObjectList;
-import emi.lib.scryfall.api.Set;
-import emi.lib.scryfall.api.enums.CardLayout;
-import emi.lib.scryfall.api.enums.Rarity;
 import emi.lib.scryfall.api.enums.SetType;
 
-import java.io.*;
-import java.net.URL;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.Executors;
 
 @Service.Provider(CardSource.class)
 @Service.Property.String(name="name", value="Scryfall")
@@ -31,6 +23,17 @@ public class ScryfallCardSource implements CardSource {
 	static {
 		if (!PARENT_DIR.exists() && !PARENT_DIR.mkdirs()) {
 			throw new Error("Couldn't create data/scryfall directory.");
+		}
+	}
+
+	private static long UPDATE_INTERVAL = 7*24*60*60*1000; // 7 days/wk * 24 hours/day * 60 minutes/hour * 60 seconds/minute * 1000 milliseconds/second * 1 wk
+//	private static final long UPDATE_INTERVAL = 15*60*1000; // 5-minute interval for testing.
+
+	private static boolean needsUpdate(File f) {
+		if (!f.exists() || Instant.now().toEpochMilli() - f.lastModified() > UPDATE_INTERVAL) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 
@@ -49,70 +52,81 @@ public class ScryfallCardSource implements CardSource {
 	- Write card faces and cards to JSON somewhere.
 	 */
 
+	private Map<String, ScryfallSet> sets;
+
 	public ScryfallCardSource() throws IOException {
-		try (FileReader reader = new FileReader(new File(PARENT_DIR, "sets.json"))) {
-			// do a thing
-		} catch (FileNotFoundException fnfe) {
-			Thread th = new Thread(() -> {
-				Scryfall api = new Scryfall();
+		this.sets = new HashMap<>();
 
-				PagedList<Set> sets = api.sets();
+		Scryfall api = new Scryfall();
+		File setsFile = new File(PARENT_DIR, "sets.json");
 
-				try (FileWriter writer = new FileWriter(new File(PARENT_DIR, "cards.json"))) {
-					JsonWriter jw = Scryfall.GSON.newJsonWriter(writer);
+		List<emi.lib.scryfall.api.Set> sets;
+		if (needsUpdate(setsFile)) {
+			// download sets
+			sets = api.sets();
+		} else {
+			System.out.println("Sets file is up-to-date.");
+			FileReader reader = new FileReader(setsFile);
+			sets = Scryfall.GSON.fromJson(reader, new TypeToken<List<emi.lib.scryfall.api.Set>>(){}.getType());
+			reader.close();
+		}
 
-					jw.beginObject();
+		// iterate over sets and get cards
+		for (emi.lib.scryfall.api.Set set : sets) {
+			if (set.setType == SetType.Token) {
+				continue;
+			}
 
-					for (Set set : sets) {
-						if (set.setType == SetType.Token) {
-							System.out.println("(Skipping " + set.name + ".)");
-							continue;
-						}
+			File cardsFile = new File(PARENT_DIR, String.format("%s-cards.json", set.code));
 
-						System.out.print("Downloading " + set.name + "... ");
-						System.out.flush();
+			List<emi.lib.scryfall.api.Card> cards;
+			if (needsUpdate(cardsFile)) {
+				cards = api.query(String.format("e:%s", set.code));
+			} else {
+				System.out.println("Cards file for " + set.name + " is up-to-date.");
+				FileReader reader = new FileReader(cardsFile);
+				cards = Scryfall.GSON.fromJson(reader, new TypeToken<List<emi.lib.scryfall.api.Card>>(){}.getType());
+				reader.close();
+			}
 
-						try (FileWriter setWriter = new FileWriter(new File(PARENT_DIR, String.format("%s.json", set.code)))) {
-							Scryfall.GSON.toJson(set, setWriter);
-						} catch (IOException ioe) {
-							ioe.printStackTrace();
-						}
+			// create the card set
+			this.sets.put(set.code, new ScryfallSet(set, cards));
 
-						PagedList<emi.lib.scryfall.api.Card> cards = api.query(String.format("e:%s", set.code));
+			if (needsUpdate(cardsFile)) {
+				System.out.println("Updating cards file for " + set.name);
+				FileWriter writer = new FileWriter(cardsFile);
+				Scryfall.GSON.toJson(cards, new TypeToken<List<emi.lib.scryfall.api.Card>>(){}.getType(), writer);
+				writer.close();
+			}
+		}
 
-						for (emi.lib.scryfall.api.Card card : cards) {
-							jw.name(card.id.toString());
-							Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, jw);
-						}
-
-						new ScryfallSet(set, cards);
-
-						System.out.println("Done.");
-					}
-
-					jw.endObject();
-				} catch (IOException ioe) {
-					ioe.printStackTrace();
-				}
-			}, "Scryfall Card Downloading Thread");
-			th.setDaemon(true);
-			th.start();
+		if (needsUpdate(setsFile)) {
+			System.out.println("Updating sets file.");
+			FileWriter writer = new FileWriter(setsFile);
+			Scryfall.GSON.toJson(sets, new TypeToken<List<emi.lib.scryfall.api.Set>>(){}.getType(), writer);
+			writer.close();
 		}
 	}
 
 	@Override
 	public Collection<? extends CardSet> sets() {
-		return null;
+		return this.sets.values();
 	}
 
 	@Override
 	public Card get(UUID id) {
+		for (ScryfallSet set : this.sets.values()) {
+			ScryfallSet.ScryfallCard card = set.get(id);
+
+			if (card != null) {
+				return card;
+			}
+		}
+
 		return null;
 	}
 
 	public static void main(String[] args) throws IOException {
 		new ScryfallCardSource();
-
-		System.in.read();
 	}
 }

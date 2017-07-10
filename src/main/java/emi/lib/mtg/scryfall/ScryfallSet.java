@@ -14,6 +14,7 @@ import emi.lib.scryfall.PagedList;
 import emi.lib.scryfall.Scryfall;
 import emi.lib.scryfall.api.enums.CardLayout;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -276,7 +277,7 @@ public class ScryfallSet implements CardSet {
 
 		public class ScryfallCardPartFace extends ScryfallCardFace {
 			private final CardFace.Kind kind;
-			private final emi.lib.scryfall.api.Card card;
+			final emi.lib.scryfall.api.Card card;
 
 			public ScryfallCardPartFace(CardFace.Kind kind, emi.lib.scryfall.api.Card card) {
 				super(card.manaCost, card.colors, card.colorIdentity, card.typeLine);
@@ -321,7 +322,7 @@ public class ScryfallSet implements CardSet {
 			}
 		}
 
-		private final emi.lib.scryfall.api.Card source;
+		final emi.lib.scryfall.api.Card source;
 		private final Map<CardFace.Kind, ScryfallCardFace> faces;
 		private final Set<Color> color, colorIdentity;
 		private final CardRarity rarity;
@@ -417,7 +418,7 @@ public class ScryfallSet implements CardSet {
 
 			switch (source.rarity) {
 				case Common:
-					if (this.source.typeLine.contains("Basic Land")) {
+					if (this.source.typeLine != null && this.source.typeLine.contains("Basic Land")) {
 						this.rarity = CardRarity.BasicLand;
 					} else {
 						this.rarity = CardRarity.Common;
@@ -481,10 +482,16 @@ public class ScryfallSet implements CardSet {
 	}
 
 	private final emi.lib.scryfall.api.Set set;
-	private final List<ScryfallCard> cards;
+	private final Map<UUID, ScryfallCard> cards;
 
 	public ScryfallSet(emi.lib.scryfall.api.Set set, final List<emi.lib.scryfall.api.Card> allCards) {
 		this.set = set;
+
+		int x = 0;
+		for (emi.lib.scryfall.api.Card card : allCards) {
+			++x;
+		}
+		System.err.println("Loaded " + x + " cards from " + set.name);
 
 		// Extract all transform/meld "B-sides" and store them.
 		Map<String, emi.lib.scryfall.api.Card> parts = allCards.parallelStream()
@@ -495,7 +502,7 @@ public class ScryfallSet implements CardSet {
 		this.cards = allCards.parallelStream()
 				.filter(c -> (c.layout != CardLayout.Transform && c.layout != CardLayout.Meld) || !c.collectorNumber.matches("[0-9]+[b-z]$"))
 				.map(c -> new ScryfallCard(parts, c))
-				.collect(Collectors.toList());
+				.collect(Collectors.toMap(ScryfallCard::id, c -> c));
 	}
 
 	@Override
@@ -510,6 +517,10 @@ public class ScryfallSet implements CardSet {
 
 	@Override
 	public Collection<? extends Card> cards() {
-		return cards;
+		return cards.values();
+	}
+
+	public ScryfallCard get(UUID id) {
+		return cards.get(id);
 	}
 }
