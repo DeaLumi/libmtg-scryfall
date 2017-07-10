@@ -16,6 +16,7 @@ import emi.lib.scryfall.api.ApiObjectList;
 import emi.lib.scryfall.api.Set;
 import emi.lib.scryfall.api.enums.CardLayout;
 import emi.lib.scryfall.api.enums.Rarity;
+import emi.lib.scryfall.api.enums.SetType;
 
 import java.io.*;
 import java.net.URL;
@@ -63,6 +64,11 @@ public class ScryfallCardSource implements CardSource {
 					jw.beginObject();
 
 					for (Set set : sets) {
+						if (set.setType == SetType.Token) {
+							System.out.println("(Skipping " + set.name + ".)");
+							continue;
+						}
+
 						System.out.print("Downloading " + set.name + "... ");
 						System.out.flush();
 
@@ -74,12 +80,12 @@ public class ScryfallCardSource implements CardSource {
 
 						PagedList<emi.lib.scryfall.api.Card> cards = api.query(String.format("e:%s", set.code));
 
-						new ScryfallSet(api, set, cards);
-
 						for (emi.lib.scryfall.api.Card card : cards) {
 							jw.name(card.id.toString());
 							Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, jw);
 						}
+
+						new ScryfallSet(set, cards);
 
 						System.out.println("Done.");
 					}
