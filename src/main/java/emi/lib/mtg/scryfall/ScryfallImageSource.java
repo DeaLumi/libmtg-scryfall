@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Stack;
 import java.util.concurrent.*;
 
 @Service.Provider(ImageSource.class)
@@ -24,7 +25,7 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private emi.lib.scryfall.api.Card card(CardFace face) {
+	private static emi.lib.scryfall.api.Card card(CardFace face) {
 		if (face instanceof ScryfallSet.ScryfallCard.ScryfallCardPartFace) {
 			return ((ScryfallSet.ScryfallCard.ScryfallCardPartFace) face).card;
 		} else if (face instanceof ScryfallSet.ScryfallCard.ScryfallCardFace) {
@@ -34,7 +35,7 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private URL imageUrl(CardFace face) {
+	private static URL imageUrl(CardFace face) {
 		emi.lib.scryfall.api.Card card = card(face);
 
 		if (card != null) {
@@ -50,7 +51,7 @@ public class ScryfallImageSource implements ImageSource {
 		return null;
 	}
 
-	private File file(CardFace face) throws IOException {
+	private static File file(CardFace face) throws IOException {
 		emi.lib.scryfall.api.Card card = card(face);
 
 		if (card != null) {
@@ -66,68 +67,102 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private static final long DOWNLOAD_DELAY = 500;
+	private static class ImageDownloadTask {
+		public final String name;
+		public final URL url;
+		public final File file;
+		public final CompletableFuture<File> future;
 
-	private static final ScheduledExecutorService DOWNLOAD_POOL = new ScheduledThreadPoolExecutor(1, r -> {
-		Thread th = Executors.defaultThreadFactory().newThread(r);
-		th.setName("Scryfall Image Downloader");
-		th.setDaemon(true);
-		return th;
-	});
+		public ImageDownloadTask(String name, File file, URL url) {
+			this.name = name;
+			this.file = file;
+			this.url = url;
+			this.future = new CompletableFuture<>();
+		}
+	}
 
-	private long nextDownload = System.currentTimeMillis();
+	private static final long DOWNLOAD_DELAY = 100;
+	private static final BlockingDeque<ImageDownloadTask> DOWNLOAD_QUEUE = new LinkedBlockingDeque<>();
 
-	@Override
-	public InputStream open(CardFace face) throws IOException {
+	private static final Thread DOWNLOAD_THREAD = new Thread(() -> {
+		try {
+			while (!Thread.currentThread().isInterrupted()) {
+				Thread.sleep(DOWNLOAD_DELAY);
+
+				ImageDownloadTask task = DOWNLOAD_QUEUE.takeFirst();
+
+				try {
+					System.err.println("Downloading " + task.name);
+					System.err.flush();
+
+					HttpURLConnection connection = (HttpURLConnection) task.url.openConnection();
+
+					if (connection.getResponseCode() != 200) {
+						throw new IOException("Response from server was not OK.");
+					}
+
+					InputStream in = connection.getInputStream();
+					ImageIO.write(ImageIO.read(connection.getInputStream()), "png", task.file);
+
+					task.future.complete(task.file);
+				} catch (IOException ioe) {
+					task.future.completeExceptionally(ioe);
+				}
+			}
+		} catch (InterruptedException ie) {
+			// meh
+		}
+	}, "Scryfall Image Downloading Thread");
+
+	static {
+		ScryfallImageSource.DOWNLOAD_THREAD.setDaemon(true);
+		ScryfallImageSource.DOWNLOAD_THREAD.start();
+	}
+
+	private static Future<File> getImage(CardFace face) throws IOException {
 		File f = file(face);
 
 		if (f == null) {
-			return null; // Not a ScryfallCardFace.
+			return null;
 		}
 
-		if (!f.exists()) {
-			long delay;
-			synchronized (this) {
-				long now = System.currentTimeMillis();
-				nextDownload = Math.max(nextDownload + DOWNLOAD_DELAY, now);
-				delay = now - nextDownload;
-			}
+		if (f.exists()) {
+			return CompletableFuture.completedFuture(f);
+		}
 
-			Future<Void> imageDownloadTask = DOWNLOAD_POOL.schedule(() -> {
-				URL imageUrl = imageUrl(face);
+		URL url = imageUrl(face);
 
-				if (imageUrl == null) {
-					System.err.println("Weird -- couldn't generate an image URL despite having a ScryfallCardFace?");
-					return null;
-				}
+		if (url == null) {
+			System.err.println("Weird -- couldn't generate an image URL despite having a ScryfallCardFace?");
+		}
 
-				HttpURLConnection connection = (HttpURLConnection) imageUrl.openConnection();
+		try {
+			ImageDownloadTask task = new ImageDownloadTask(face.name(), f, url);
+			DOWNLOAD_QUEUE.putFirst(task);
+			System.err.println("Stacking " + face.name());
+			System.err.flush();
+			return task.future;
+		} catch (InterruptedException e) {
+			throw new IOException(e);
+		}
+	}
 
-				if (connection.getResponseCode() != 200) {
-					throw new IOException("Response from server was not OK.");
-				}
+	@Override
+	public InputStream open(CardFace face) throws IOException {
+		Future<File> imageDownloadTask = getImage(face);
 
-				InputStream in = connection.getInputStream();
-				ImageIO.write(ImageIO.read(connection.getInputStream()), "png", f);
-
-				return null;
-			}, delay, TimeUnit.MILLISECONDS);
-
-			while (!imageDownloadTask.isDone()) {
-				try {
-					Thread.sleep(5);
-				} catch (InterruptedException ie) {
-					throw new IOException(ie);
-				}
-			}
-
+		while (!imageDownloadTask.isDone()) {
 			try {
-				imageDownloadTask.get();
-			} catch (InterruptedException | ExecutionException e) {
-				throw new IOException(e);
+				Thread.sleep(5);
+			} catch (InterruptedException ie) {
+				throw new IOException(ie);
 			}
 		}
 
-		return new FileInputStream(f);
+		try {
+			return new FileInputStream(imageDownloadTask.get());
+		} catch (InterruptedException | ExecutionException e) {
+			throw new IOException(e);
+		}
 	}
 }
