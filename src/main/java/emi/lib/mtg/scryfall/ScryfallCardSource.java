@@ -8,10 +8,8 @@ import emi.lib.mtg.data.CardSource;
 import emi.lib.scryfall.Scryfall;
 import emi.lib.scryfall.api.enums.SetType;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 
@@ -66,7 +64,7 @@ public class ScryfallCardSource implements CardSource {
 			sets = api.sets();
 		} else {
 			System.out.println("Sets file is up-to-date.");
-			FileReader reader = new FileReader(setsFile);
+			Reader reader = new InputStreamReader(new FileInputStream(setsFile), StandardCharsets.UTF_8);
 			sets = Scryfall.GSON.fromJson(reader, new TypeToken<List<emi.lib.scryfall.api.Set>>(){}.getType());
 			reader.close();
 		}
@@ -84,7 +82,7 @@ public class ScryfallCardSource implements CardSource {
 				cards = api.query(String.format("e:%s", set.code));
 			} else {
 				System.out.println("Cards file for " + set.name + " is up-to-date.");
-				FileReader reader = new FileReader(cardsFile);
+				Reader reader = new InputStreamReader(new FileInputStream(cardsFile), StandardCharsets.UTF_8);
 				cards = Scryfall.GSON.fromJson(reader, new TypeToken<List<emi.lib.scryfall.api.Card>>(){}.getType());
 				reader.close();
 			}
@@ -94,7 +92,7 @@ public class ScryfallCardSource implements CardSource {
 
 			if (needsUpdate(cardsFile)) {
 				System.out.println("Updating cards file for " + set.name);
-				FileWriter writer = new FileWriter(cardsFile);
+				Writer writer = new OutputStreamWriter(new FileOutputStream(cardsFile), StandardCharsets.UTF_8);
 				Scryfall.GSON.toJson(cards, new TypeToken<List<emi.lib.scryfall.api.Card>>(){}.getType(), writer);
 				writer.close();
 			}
@@ -102,7 +100,7 @@ public class ScryfallCardSource implements CardSource {
 
 		if (needsUpdate(setsFile)) {
 			System.out.println("Updating sets file.");
-			FileWriter writer = new FileWriter(setsFile);
+			Writer writer = new OutputStreamWriter(new FileOutputStream(setsFile), StandardCharsets.UTF_8);
 			Scryfall.GSON.toJson(sets, new TypeToken<List<emi.lib.scryfall.api.Set>>(){}.getType(), writer);
 			writer.close();
 		}
