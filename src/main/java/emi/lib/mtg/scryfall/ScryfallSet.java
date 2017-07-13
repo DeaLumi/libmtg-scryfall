@@ -466,6 +466,11 @@ public class ScryfallSet implements CardSet {
 		}
 
 		@Override
+		public Collection<ScryfallCardFace> faces() {
+			return faces.values();
+		}
+
+		@Override
 		public CardFace face(CardFace.Kind kind) {
 			return faces.get(kind);
 		}
