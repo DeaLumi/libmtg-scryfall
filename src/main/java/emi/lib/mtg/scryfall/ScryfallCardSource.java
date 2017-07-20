@@ -1,6 +1,9 @@
 package emi.lib.mtg.scryfall;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import emi.lib.Service;
 import emi.lib.mtg.card.Card;
 import emi.lib.mtg.data.CardSet;
@@ -50,60 +53,86 @@ public class ScryfallCardSource implements CardSource {
 	- Write card faces and cards to JSON somewhere.
 	 */
 
+	private static class SetStub {
+		public emi.lib.scryfall.api.Set set;
+		public List<emi.lib.scryfall.api.Card> cards;
+	}
+
 	private Map<String, ScryfallSet> sets;
 
 	public ScryfallCardSource() throws IOException {
 		this.sets = new HashMap<>();
 
 		Scryfall api = new Scryfall();
-		File setsFile = new File(PARENT_DIR, "sets.json");
-
-		List<emi.lib.scryfall.api.Set> sets;
-		if (needsUpdate(setsFile)) {
-			// download sets
-			sets = api.sets();
-		} else {
-			System.out.println("Sets file is up-to-date.");
-			Reader reader = new InputStreamReader(new FileInputStream(setsFile), StandardCharsets.UTF_8);
-			sets = Scryfall.GSON.fromJson(reader, new TypeToken<List<emi.lib.scryfall.api.Set>>(){}.getType());
-			reader.close();
-		}
-
-		// iterate over sets and get cards
-		for (emi.lib.scryfall.api.Set set : sets) {
-			if (set.setType == SetType.Token) {
-				continue;
-			}
-
-			File cardsFile = new File(PARENT_DIR, String.format("%s-cards.json", set.code));
-
-			List<emi.lib.scryfall.api.Card> cards;
-			if (needsUpdate(cardsFile)) {
-				cards = api.query(String.format("e:%s", set.code));
-			} else {
-				System.out.println("Cards file for " + set.name + " is up-to-date.");
-				Reader reader = new InputStreamReader(new FileInputStream(cardsFile), StandardCharsets.UTF_8);
-				cards = Scryfall.GSON.fromJson(reader, new TypeToken<List<emi.lib.scryfall.api.Card>>(){}.getType());
-				reader.close();
-			}
-
-			// create the card set
-			this.sets.put(set.code, new ScryfallSet(set, cards));
-
-			if (needsUpdate(cardsFile)) {
-				System.out.println("Updating cards file for " + set.name);
-				Writer writer = new OutputStreamWriter(new FileOutputStream(cardsFile), StandardCharsets.UTF_8);
-				Scryfall.GSON.toJson(cards, new TypeToken<List<emi.lib.scryfall.api.Card>>(){}.getType(), writer);
-				writer.close();
-			}
-		}
+		File setsFile = new File(PARENT_DIR, "scryfall-sets.json");
 
 		if (needsUpdate(setsFile)) {
-			System.out.println("Updating sets file.");
-			Writer writer = new OutputStreamWriter(new FileOutputStream(setsFile), StandardCharsets.UTF_8);
-			Scryfall.GSON.toJson(sets, new TypeToken<List<emi.lib.scryfall.api.Set>>(){}.getType(), writer);
+			System.out.println("Sets file needs update. Please wait...");
+
+			List<emi.lib.scryfall.api.Set> sets = api.sets();
+
+			JsonWriter writer = Scryfall.GSON.newJsonWriter(new OutputStreamWriter(new FileOutputStream(setsFile), StandardCharsets.UTF_8));
+
+			writer.beginObject();
+			for (emi.lib.scryfall.api.Set set : sets) {
+				System.out.print(" Set: " + set.code + " / " + set.name + "... ");
+
+				if (set.setType == SetType.Token) {
+					System.out.println("ignored (token set)");
+					continue;
+				}
+
+				writer.name(set.code);
+				writer.beginObject();
+
+				writer.name("set");
+				Scryfall.GSON.toJson(set, emi.lib.scryfall.api.Set.class, writer);
+
+				writer.name("cards");
+				writer.beginArray();
+				List<emi.lib.scryfall.api.Card> cards = api.query(String.format("e:%s", set.code));
+				for (emi.lib.scryfall.api.Card card : cards) {
+					// Null out some excess data here to save hard drive space.
+					card.eur = null;
+					card.usd = null;
+					card.tix = null;
+					card.relatedUris = null;
+					card.purchaseUris = null;
+					card.legalities = null; // TODO: We might want to bring this back soon...
+
+					Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
+				}
+				writer.endArray();
+
+				System.out.println("done!");
+
+				writer.endObject();
+			}
+			writer.endObject();
+
 			writer.close();
+
+			System.out.println("Done! Cleaning up...");
+
+			System.gc();
+			System.gc();
+
+			System.out.println("Done! Next update in one week~");
 		}
+
+		System.out.println("Loading Scryfall card data...");
+		System.out.flush();
+
+		Map<String, SetStub> setStubMap = Scryfall.GSON.fromJson(new InputStreamReader(new FileInputStream(setsFile)), new TypeToken<Map<String, SetStub>>(){}.getType());
+
+		for (Map.Entry<String, SetStub> stubEntry : setStubMap.entrySet()) {
+			assert stubEntry.getKey().equals(stubEntry.getValue().set.code);
+
+			this.sets.put(stubEntry.getValue().set.code, new ScryfallSet(stubEntry.getValue().set, stubEntry.getValue().cards));
+		}
+
+		System.out.println("Done!");
+		System.out.flush();
 	}
 
 	@Override

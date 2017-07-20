@@ -492,12 +492,6 @@ public class ScryfallSet implements CardSet {
 	public ScryfallSet(emi.lib.scryfall.api.Set set, final List<emi.lib.scryfall.api.Card> allCards) {
 		this.set = set;
 
-		int x = 0;
-		for (emi.lib.scryfall.api.Card card : allCards) {
-			++x;
-		}
-		System.err.println("Loaded " + x + " cards from " + set.name);
-
 		// Extract all transform/meld "B-sides" and store them.
 		Map<String, emi.lib.scryfall.api.Card> parts = allCards.parallelStream()
 				.filter(c -> c.layout == CardLayout.Transform || c.layout == CardLayout.Meld)
