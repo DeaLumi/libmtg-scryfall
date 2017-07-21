@@ -123,7 +123,7 @@ public class ScryfallCardSource implements CardSource {
 		System.out.println("Loading Scryfall card data...");
 		System.out.flush();
 
-		Map<String, SetStub> setStubMap = Scryfall.GSON.fromJson(new InputStreamReader(new FileInputStream(setsFile)), new TypeToken<Map<String, SetStub>>(){}.getType());
+		Map<String, SetStub> setStubMap = Scryfall.GSON.fromJson(new InputStreamReader(new FileInputStream(setsFile), StandardCharsets.UTF_8), new TypeToken<Map<String, SetStub>>(){}.getType());
 
 		for (Map.Entry<String, SetStub> stubEntry : setStubMap.entrySet()) {
 			assert stubEntry.getKey().equals(stubEntry.getValue().set.code);
