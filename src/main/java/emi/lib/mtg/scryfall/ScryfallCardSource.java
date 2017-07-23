@@ -15,6 +15,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service.Provider(CardSource.class)
 @Service.Property.String(name="name", value="Scryfall")
@@ -154,6 +155,17 @@ public class ScryfallCardSource implements CardSource {
 	}
 
 	public static void main(String[] args) throws IOException {
-		new ScryfallCardSource();
+		ScryfallCardSource dataSource = new ScryfallCardSource();
+
+		long sets = dataSource.sets.size();
+		long printings = dataSource.sets.values().stream()
+				.mapToLong(set -> set.cards().size())
+				.sum();
+
+		Map<String, Card> cards = dataSource.sets.values().stream()
+				.flatMap(set -> set.cards().stream())
+				.collect(Collectors.toMap(Card::name, c -> c, (c1, c2) -> c1));
+
+		System.out.println(String.format("%d sets, %d cards, %d printings", sets, cards.size(), printings));
 	}
 }
