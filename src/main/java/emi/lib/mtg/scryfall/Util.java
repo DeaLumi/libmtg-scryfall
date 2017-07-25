@@ -1,4 +1,4 @@
-package emi.lib.mtg.scryfall.v2;
+package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.characteristic.CardRarity;
 import emi.lib.mtg.characteristic.Color;

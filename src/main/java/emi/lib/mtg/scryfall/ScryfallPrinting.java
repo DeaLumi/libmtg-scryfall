@@ -1,8 +1,8 @@
-package emi.lib.mtg.scryfall.v2;
+package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.characteristic.CardRarity;
-import emi.lib.mtg.v2.Card;
-import emi.lib.mtg.v2.Set;
+import emi.lib.mtg.Card;
+import emi.lib.mtg.Set;
 
 import java.util.UUID;
 

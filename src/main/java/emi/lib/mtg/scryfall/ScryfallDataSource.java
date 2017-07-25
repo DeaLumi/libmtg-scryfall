@@ -1,4 +1,4 @@
-package emi.lib.mtg.scryfall.v2;
+package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -6,10 +6,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import emi.lib.Service;
-import emi.lib.mtg.card.Card;
-import emi.lib.mtg.data.CardSet;
-import emi.lib.mtg.scryfall.ScryfallCardSource;
-import emi.lib.mtg.v2.DataSource;
+import emi.lib.mtg.Card;
+import emi.lib.mtg.DataSource;
 import emi.lib.scryfall.Scryfall;
 import emi.lib.scryfall.api.Catalog;
 import emi.lib.scryfall.api.enums.CardLayout;
@@ -20,7 +18,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service.Provider(DataSource.class)
 @Service.Property.String(name="name", value="Scryfall")
@@ -215,42 +212,9 @@ public class ScryfallDataSource implements DataSource {
 
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
 
-		start = System.nanoTime();
-		ScryfallCardSource cardSource = new ScryfallCardSource();
-		System.out.println(String.format("Old: %.2f seconds", (System.nanoTime() - start) / 1e9));
-
-		long sets = cardSource.sets().size();
-		long printings = cardSource.sets().stream()
-				.mapToLong(set -> set.cards().size())
-				.sum();
-
-		Map<String, Card> cards = cardSource.sets().stream()
-				.flatMap(set -> set.cards().stream())
-				.collect(Collectors.toMap(Card::name, c -> c, (c1, c2) -> c1));
-
-		System.out.println(String.format("Old: %d sets, %d cards, %d printings", sets, cards.size(), printings));
-
 		Scryfall api = new Scryfall();
 		Catalog cardNames = api.requestJson(new URL("https://api.scryfall.com/catalog/card-names"), Catalog.class);
 		System.out.println(String.format("%d cards", cardNames.data.size()));
-
-		for (CardSet oldSet : cardSource.sets()) {
-			if (dataSource.set(oldSet.code()) == null) {
-				System.out.println(String.format("New data source is missing set %s / %s", oldSet.code(), oldSet.name()));
-			} else {
-				for (emi.lib.mtg.card.Card oldCard : oldSet.cards()) {
-					if (dataSource.card(oldCard.name()) == null) {
-						System.out.println(String.format("New data source is missing card %s", oldCard.name()));
-					} else {
-						emi.lib.mtg.v2.Card newCard = dataSource.card(oldCard.name());
-
-						if (newCard.printings().stream().noneMatch(pr -> pr.set().code().equals(oldSet.code()))) {
-							System.out.println(String.format("New data source is missing %s from %s / %s", oldCard.name(), oldSet.code(), oldSet.name()));
-						}
-					}
-				}
-			}
-		}
 
 		Set<String> newCardNames = new HashSet<>();
 
@@ -260,7 +224,7 @@ public class ScryfallDataSource implements DataSource {
 					newCardNames.add(c.name());
 
 					c.faces().stream()
-							.map(emi.lib.mtg.v2.Card.Face::name)
+							.map(Card.Face::name)
 							.forEach(newCardNames::add);
 				});
 

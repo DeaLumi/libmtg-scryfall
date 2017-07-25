@@ -1,5 +1,5 @@
 
-package emi.lib.mtg.scryfall.v2;
+package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.EnumHashBiMap;
@@ -9,7 +9,7 @@ import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.characteristic.ManaCost;
 import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
 import emi.lib.mtg.characteristic.impl.BasicManaCost;
-import emi.lib.mtg.v2.Card;
+import emi.lib.mtg.Card;
 
 import java.util.*;
 

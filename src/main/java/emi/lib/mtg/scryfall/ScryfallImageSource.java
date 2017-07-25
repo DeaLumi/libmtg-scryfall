@@ -1,113 +1,88 @@
 package emi.lib.mtg.scryfall;
 
 import emi.lib.Service;
-import emi.lib.mtg.card.CardFace;
-import emi.lib.mtg.data.ImageSource;
-import javafx.concurrent.Task;
-import javafx.scene.image.Image;
+import emi.lib.mtg.Card;
+import emi.lib.mtg.ImageSource;
 
 import javax.imageio.ImageIO;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Stack;
 import java.util.concurrent.*;
 
 @Service.Provider(ImageSource.class)
 @Service.Property.String(name="name", value="Scryfall HQ")
 @Service.Property.Number(name="priority", value=0.5)
 public class ScryfallImageSource implements ImageSource {
-	private static final File PARENT_DIR = new File(new File("images"), "scryfall");
+
+	private static final File PARENT = new File(new File("images"), "scryfall");
 
 	static {
-		if (!PARENT_DIR.exists() && !PARENT_DIR.mkdirs()) {
-			throw new Error("Couldn't create parent directory for Scryfall card images...");
+		if (!PARENT.exists() && !PARENT.mkdirs()) {
+			throw new Error("Couldn't create image directory for ScryfallImageSourceV2");
 		}
 	}
 
-	private static emi.lib.scryfall.api.Card card(CardFace face) {
-		if (face instanceof ScryfallSet.ScryfallCard.ScryfallCardPartFace) {
-			return ((ScryfallSet.ScryfallCard.ScryfallCardPartFace) face).card;
-		} else if (face instanceof ScryfallSet.ScryfallCard.ScryfallCardFace) {
-			return ((ScryfallSet.ScryfallCard) face.card()).source;
-		} else {
-			return null;
-		}
+	private static File file(Card.Printing printing, Card.Face face) {
+		return new File(PARENT, String.format("%s.png", printing.id().toString()));
 	}
 
-	private static URL imageUrl(CardFace face) {
-		emi.lib.scryfall.api.Card card = card(face);
+	private static URL url(Card.Printing printing, Card.Face face) {
+		if (printing instanceof ScryfallPrinting) {
+			ScryfallPrinting scp = (ScryfallPrinting) printing;
 
-		if (card != null) {
-			if (card.imageUris.containsKey("png")) {
-				return card.imageUris.get("png");
-			} else if (card.imageUris.containsKey("large")) {
-				return card.imageUris.get("large");
-			} else {
-				return card.imageUri;
-			}
-		}
+			URL pngUrl = scp.cardJson.imageUris.get("png");
 
-		return null;
-	}
-
-	private static File file(CardFace face) throws IOException {
-		emi.lib.scryfall.api.Card card = card(face);
-
-		if (card != null) {
-			File setDir = new File(PARENT_DIR, String.format("s%s", card.set));
-
-			if (!setDir.exists() && !setDir.mkdir()) {
-				throw new IOException("Couldn't create parent directory for set " + card.setName);
+			if (pngUrl != null) {
+				return pngUrl;
 			}
 
-			return new File(setDir, String.format("%s.png", card.id.toString()));
+			return scp.cardJson.imageUri;
 		} else {
-			return null;
+			return null; // TODO: We may be able to find an image from Scryfall anyway.
 		}
 	}
 
 	private static class ImageDownloadTask {
 		public final String name;
 		public final URL url;
-		public final File file;
+		public final File dest;
 		public final CompletableFuture<File> future;
 
-		public ImageDownloadTask(String name, File file, URL url) {
-			this.name = name;
-			this.file = file;
+		public ImageDownloadTask(File dest, URL url, Card.Printing printing, Card.Face face) {
+			this.name = face.name();
 			this.url = url;
+			this.dest = dest;
 			this.future = new CompletableFuture<>();
 		}
 	}
 
-	private static final long DOWNLOAD_DELAY = 100;
 	private static final BlockingDeque<ImageDownloadTask> DOWNLOAD_QUEUE = new LinkedBlockingDeque<>();
+	private static final long DOWNLOAD_DELAY = 100;
 
 	private static final Thread DOWNLOAD_THREAD = new Thread(() -> {
 		try {
 			while (!Thread.currentThread().isInterrupted()) {
-				Thread.sleep(DOWNLOAD_DELAY);
-
-				ImageDownloadTask task = DOWNLOAD_QUEUE.takeFirst();
+				ImageDownloadTask nextImage = DOWNLOAD_QUEUE.take();
 
 				try {
-					System.err.println("Downloading " + task.name);
-					System.err.flush();
-
-					HttpURLConnection connection = (HttpURLConnection) task.url.openConnection();
+					HttpURLConnection connection = (HttpURLConnection) nextImage.url.openConnection();
 
 					if (connection.getResponseCode() != 200) {
-						throw new IOException("Response from server was not OK.");
+						throw new IOException("Response from server was not okay.");
 					}
 
 					InputStream in = connection.getInputStream();
-					ImageIO.write(ImageIO.read(connection.getInputStream()), "png", task.file);
-
-					task.future.complete(task.file);
-				} catch (IOException ioe) {
-					task.future.completeExceptionally(ioe);
+					ImageIO.write(ImageIO.read(in), "png", nextImage.dest);
+					nextImage.future.complete(nextImage.dest);
+				} catch (IOException ie) {
+					nextImage.future.completeExceptionally(ie);
 				}
+
+				Thread.sleep(DOWNLOAD_DELAY);
 			}
 		} catch (InterruptedException ie) {
 			// meh
@@ -115,54 +90,50 @@ public class ScryfallImageSource implements ImageSource {
 	}, "Scryfall Image Downloading Thread");
 
 	static {
-		ScryfallImageSource.DOWNLOAD_THREAD.setDaemon(true);
-		ScryfallImageSource.DOWNLOAD_THREAD.start();
+		DOWNLOAD_THREAD.setDaemon(true);
+		DOWNLOAD_THREAD.start();
 	}
 
-	private static Future<File> getImage(CardFace face) throws IOException {
-		File f = file(face);
+	@Override
+	public InputStream open(Card.Printing printing, Card.Face face) throws IOException {
+		File file = file(printing, face);
 
-		if (f == null) {
+		if (file.exists()) {
+			return new FileInputStream(file);
+		}
+
+		URL url = url(printing, face);
+
+		if (url == null) {
 			return null;
 		}
 
-		if (f.exists()) {
-			return CompletableFuture.completedFuture(f);
-		}
-
-		URL url = imageUrl(face);
-
-		if (url == null) {
-			System.err.println("Weird -- couldn't generate an image URL despite having a ScryfallCardFace?");
-		}
+		ImageDownloadTask task = new ImageDownloadTask(file, url, printing, face);
 
 		try {
-			ImageDownloadTask task = new ImageDownloadTask(face.name(), f, url);
-			DOWNLOAD_QUEUE.putFirst(task);
-			System.err.println("Stacking " + face.name());
-			System.err.flush();
-			return task.future;
-		} catch (InterruptedException e) {
+			DOWNLOAD_QUEUE.put(task);
+
+			while (!task.future.isDone()) {
+				Thread.sleep(10);
+			}
+
+			return new FileInputStream(task.future.get());
+		} catch (InterruptedException ie) {
+			return null;
+		} catch (ExecutionException e) {
 			throw new IOException(e);
 		}
 	}
 
 	@Override
-	public InputStream open(CardFace face) throws IOException {
-		Future<File> imageDownloadTask = getImage(face);
-
-		while (!imageDownloadTask.isDone()) {
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException ie) {
-				throw new IOException(ie);
-			}
-		}
-
-		try {
-			return new FileInputStream(imageDownloadTask.get());
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException(e);
+	public InputStream open(Card.Printing printing) throws IOException {
+		if (printing.card().face(Card.Face.Kind.Front) != null) {
+			return open(printing, printing.card().face(Card.Face.Kind.Front));
+		} else if (printing.card().face(Card.Face.Kind.Left) != null) {
+			return open(printing, printing.card().face(Card.Face.Kind.Front));
+		} else {
+			System.err.println("Couldn't decide on a face for " + printing.card().fullName());
+			return null;
 		}
 	}
 }
