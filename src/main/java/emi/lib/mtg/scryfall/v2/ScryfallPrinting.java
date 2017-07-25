@@ -10,7 +10,8 @@ public class ScryfallPrinting implements Card.Printing {
 
 	private ScryfallCard card;
 	private ScryfallSet set;
-	private emi.lib.scryfall.api.Card cardJson;
+
+	emi.lib.scryfall.api.Card cardJson;
 
 	public ScryfallPrinting(ScryfallCard card, ScryfallSet set, emi.lib.scryfall.api.Card cardJson) {
 		this.card = card;

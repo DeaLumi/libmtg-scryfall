@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import emi.lib.Service;
 import emi.lib.mtg.card.Card;
 import emi.lib.mtg.data.CardSet;
 import emi.lib.mtg.scryfall.ScryfallCardSource;
@@ -21,6 +22,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Service.Provider(DataSource.class)
+@Service.Property.String(name="name", value="Scryfall")
 public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
 
