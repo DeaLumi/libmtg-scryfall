@@ -12,10 +12,97 @@ import emi.lib.mtg.characteristic.impl.BasicManaCost;
 import emi.lib.mtg.Card;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ScryfallCard implements Card {
 
+	public static void create(Map<String, emi.lib.scryfall.api.Set> jsonSets,
+							  Map<UUID, emi.lib.scryfall.api.Card> jsonCards,
+							  Map<String, ScryfallSet> sets,
+							  Map<String, ScryfallCard> cards,
+							  Map<UUID, ScryfallPrinting> printings) {
+		while (!jsonCards.isEmpty()) {
+			emi.lib.scryfall.api.Card card = jsonCards.values().iterator().next();
+			create(jsonSets, jsonCards, card, sets, cards, printings);
+		}
+	}
+
+	public static void create(Map<String, emi.lib.scryfall.api.Set> jsonSets,
+							  Map<UUID, emi.lib.scryfall.api.Card> jsonCards,
+							  emi.lib.scryfall.api.Card jsonCard,
+							  Map<String, ScryfallSet> sets,
+							  Map<String, ScryfallCard> cards,
+							  Map<UUID, ScryfallPrinting> printings) {
+		switch (jsonCard.layout) {
+			case Normal:
+			case Leveler:
+			case Plane:
+			case Phenomenon:
+			case Scheme:
+			case Vanguard:
+				createNormalCard(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				break;
+
+			case Split:
+				createSplitCard(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				break;
+
+			case Flip:
+				createFlipCard(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				break;
+
+			case Transform:
+				createTransformCard(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				break;
+
+			case Meld:
+				createMeldCard(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				break;
+
+			case Token:
+			case Emblem:
+				System.err.println("Attempt to make card out of " + jsonCard.name + " which is not a card.");
+				break;
+
+			default:
+				assert false;
+				break;
+		}
+	}
+
+	private static void createNormalCard(Map<String, emi.lib.scryfall.api.Set> jsonSets,
+										 Map<UUID, emi.lib.scryfall.api.Card> jsonCards,
+										 emi.lib.scryfall.api.Card jsonCard,
+										 Map<String, ScryfallSet> sets,
+										 Map<String, ScryfallCard> cards,
+										 Map<UUID, ScryfallPrinting> printings) {
+		Set<emi.lib.scryfall.api.Card> cardPrintings = jsonCards.values().stream()
+				.filter(c -> c.name.equals(jsonCard.name))
+				.collect(Collectors.toSet());
+		jsonCards.values().removeAll(cardPrintings);
+
+		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, n -> new ScryfallCard());
+		ScryfallCard.Face face = card.new Face();
+
+		for (emi.lib.scryfall.api.Card printing : cardPrintings) {
+			ScryfallCard.Printing cpr = card.new Printing();
+			ScryfallCard.Face.Printing fpr = face.new Printing();
+
+			cpr.faces.put(face.kind(), fpr);
+
+			sets.computeIfAbsent(jsonCard.set, s -> new ScryfallSet()).printings.put(jsonCard.id, cpr);
+		}
+	}
+
+	public abstract class Printing implements Card.Printing {
+		BiMap<Face.Kind, Face.Printing> faces;
+	}
+
 	public abstract class Face implements Card.Face {
+		public abstract class Printing implements Card.Face.Printing {
+
+		}
+
 		private Face.Kind kind;
 		private EnumSet<Color> colorIndicator, color, colorIdentity;
 
@@ -84,6 +171,7 @@ public class ScryfallCard implements Card {
 			this.card.manaCost = Util.or(this.card.manaCost, "");
 			this.card.typeLine = Util.or(this.card.typeLine, "");
 			this.card.oracleText = Util.or(this.card.oracleText, "");
+			this.card.flavorText = Util.or(this.card.flavorText, "");
 			this.card.power = Util.or(this.card.power, "");
 			this.card.toughness = Util.or(this.card.toughness, "");
 			this.card.loyalty = Util.or(this.card.loyalty, "");

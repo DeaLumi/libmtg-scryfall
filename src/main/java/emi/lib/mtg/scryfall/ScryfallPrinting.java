@@ -1,5 +1,6 @@
 package emi.lib.mtg.scryfall;
 
+import com.google.common.collect.EnumHashBiMap;
 import emi.lib.mtg.characteristic.CardRarity;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.Set;
@@ -7,10 +8,10 @@ import emi.lib.mtg.Set;
 import java.util.UUID;
 
 public class ScryfallPrinting implements Card.Printing {
-
 	private ScryfallCard card;
 	private ScryfallSet set;
 
+	EnumHashBiMap<Card.Face.Kind, ScryfallCard.Face.Printing> faces;
 	emi.lib.scryfall.api.Card cardJson;
 
 	public ScryfallPrinting(ScryfallCard card, ScryfallSet set, emi.lib.scryfall.api.Card cardJson) {
@@ -25,6 +26,16 @@ public class ScryfallPrinting implements Card.Printing {
 	@Override
 	public Card card() {
 		return this.card;
+	}
+
+	@Override
+	public java.util.Set<? extends Card.Face.Printing> faces() {
+		return faces.values();
+	}
+
+	@Override
+	public Card.Face.Printing face(Card.Face.Kind kind) {
+		return faces.get(kind);
 	}
 
 	@Override
