@@ -1,59 +1,76 @@
 package emi.lib.mtg.scryfall.v2_1;
 
+import com.google.common.collect.EnumHashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.CardRarity;
+import emi.lib.mtg.scryfall.Util;
 
 import java.util.Set;
 import java.util.UUID;
 
 public class ScryfallPrinting implements Card.Printing {
+
+	private final ScryfallSet set;
+	private final ScryfallCard card;
+	private final emi.lib.scryfall.api.Card cardJson;
+
+	final EnumHashBiMap<Card.Face.Kind, ScryfallPrintedFace> faces;
+
+	ScryfallPrinting(ScryfallSet set, ScryfallCard card, emi.lib.scryfall.api.Card cardJson) {
+		this.set = set;
+		this.card = card;
+		this.cardJson = cardJson;
+
+		this.faces = EnumHashBiMap.create(Card.Face.Kind.class);
+	}
+
 	@Override
 	public Card card() {
-		return null;
+		return card;
 	}
 
 	@Override
-	public Set<? extends Card.Face.Printing> faces() {
-		return null;
+	public Set<? extends Face> faces() {
+		return faces.values();
 	}
 
 	@Override
-	public Card.Face.Printing face(Card.Face.Kind kind) {
-		return null;
+	public Face face(Card.Face.Kind kind) {
+		return faces.get(kind);
 	}
 
 	@Override
 	public emi.lib.mtg.Set set() {
-		return null;
+		return set;
 	}
 
 	@Override
 	public CardRarity rarity() {
-		return null;
+		return Util.mapRarity(cardJson);
 	}
 
 	@Override
 	public Integer multiverseId() {
-		return null;
+		return cardJson.multiverseId;
 	}
 
 	@Override
 	public int variation() {
-		return 0;
+		return 0; // TODO: WORK THIS OUT! Necessary for XLHQ image source!
 	}
 
 	@Override
 	public String collectorNumber() {
-		return null;
+		return cardJson.collectorNumber;
 	}
 
 	@Override
 	public Integer mtgoCatalogId() {
-		return null;
+		return cardJson.mtgoId;
 	}
 
 	@Override
 	public UUID id() {
-		return null;
+		return cardJson.id;
 	}
 }

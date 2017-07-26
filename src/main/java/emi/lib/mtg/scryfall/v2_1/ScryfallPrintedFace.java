@@ -2,19 +2,25 @@ package emi.lib.mtg.scryfall.v2_1;
 
 import emi.lib.mtg.Card;
 
-public class ScryfallPrintedFace implements Card.Face.Printing {
-	@Override
-	public Card.Face face() {
-		return null;
+import static emi.lib.mtg.scryfall.Util.or;
+
+public class ScryfallPrintedFace implements Card.Printing.Face {
+
+	private final ScryfallFace face;
+	private final emi.lib.scryfall.api.Card cardJson;
+
+	ScryfallPrintedFace(ScryfallFace face, emi.lib.scryfall.api.Card cardJson) {
+		this.face = face;
+		this.cardJson = cardJson;
 	}
 
 	@Override
-	public Card.Printing printing() {
-		return null;
+	public ScryfallFace face() {
+		return face;
 	}
 
 	@Override
 	public String flavor() {
-		return null;
+		return or(cardJson.flavorText, "");
 	}
 }

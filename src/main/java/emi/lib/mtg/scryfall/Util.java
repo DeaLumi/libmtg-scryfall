@@ -9,19 +9,19 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public class Util {
-	private static int or(Integer in, int def) {
+	public static int or(Integer in, int def) {
 		return in != null ? in : def;
 	}
 
-	static String or(String in, String def) {
+	public static String or(String in, String def) {
 		return in != null ? in : def;
 	}
 
-	private static <T> Set<T> orEmpty(Set<T> in) {
+	public static <T> Set<T> orEmpty(Set<T> in) {
 		return in != null ? in : Collections.emptySet();
 	}
 
-	static EnumSet<Color> mapColor(Set<emi.lib.scryfall.api.enums.Color> apiColors) {
+	public static EnumSet<Color> mapColor(Set<emi.lib.scryfall.api.enums.Color> apiColors) {
 		EnumSet<Color> out = EnumSet.noneOf(Color.class);
 
 		for (emi.lib.scryfall.api.enums.Color color : apiColors) {
@@ -50,7 +50,7 @@ public class Util {
 		return out;
 	}
 
-	static CardRarity mapRarity(emi.lib.scryfall.api.Card card) {
+	public static CardRarity mapRarity(emi.lib.scryfall.api.Card card) {
 		switch (card.rarity) {
 			case Common:
 				if (card.typeLine != null && card.typeLine.contains("Basic Land")) {
