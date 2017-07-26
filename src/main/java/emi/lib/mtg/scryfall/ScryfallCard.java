@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ScryfallCard implements Card {
-
+/*
 	public static void create(Map<String, emi.lib.scryfall.api.Set> jsonSets,
 							  Map<UUID, emi.lib.scryfall.api.Card> jsonCards,
 							  Map<String, ScryfallSet> sets,
@@ -97,7 +97,7 @@ public class ScryfallCard implements Card {
 	public abstract class Printing implements Card.Printing {
 		BiMap<Face.Kind, Face.Printing> faces;
 	}
-
+*/
 	public abstract class Face implements Card.Face {
 		public abstract class Printing implements Card.Face.Printing {
 
@@ -153,6 +153,16 @@ public class ScryfallCard implements Card {
 		public Set<Color> colorIdentity() {
 			initColors();
 			return this.colorIdentity;
+		}
+
+		@Override
+		public Set<? extends Card.Face.Printing> printings() {
+			return Collections.emptySet();
+		}
+
+		@Override
+		public Card.Face.Printing printing(Card.Printing printing) {
+			return null;
 		}
 	}
 

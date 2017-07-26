@@ -26,8 +26,14 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private static File file(Card.Printing printing, Card.Face face) {
-		return new File(PARENT, String.format("%s.png", printing.id().toString()));
+	private static File file(Card.Printing printing, Card.Face face) throws IOException {
+		File f = new File(new File(PARENT, String.format("s%s", printing.set().code())), String.format("%s.png", printing.id().toString()));
+
+		if (!f.getParentFile().exists() && !f.getParentFile().mkdirs()) {
+			throw new IOException("Couldn't make parent directory for set " + printing.set().code());
+		}
+
+		return f;
 	}
 
 	private static URL url(Card.Printing printing, Card.Face face) {
@@ -130,7 +136,7 @@ public class ScryfallImageSource implements ImageSource {
 		if (printing.card().face(Card.Face.Kind.Front) != null) {
 			return open(printing, printing.card().face(Card.Face.Kind.Front));
 		} else if (printing.card().face(Card.Face.Kind.Left) != null) {
-			return open(printing, printing.card().face(Card.Face.Kind.Front));
+			return open(printing, printing.card().face(Card.Face.Kind.Left));
 		} else {
 			System.err.println("Couldn't decide on a face for " + printing.card().fullName());
 			return null;

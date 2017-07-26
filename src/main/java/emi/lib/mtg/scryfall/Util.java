@@ -53,7 +53,7 @@ public class Util {
 	static CardRarity mapRarity(emi.lib.scryfall.api.Card card) {
 		switch (card.rarity) {
 			case Common:
-				if (card.typeLine.contains("Basic Land")) {
+				if (card.typeLine != null && card.typeLine.contains("Basic Land")) {
 					return CardRarity.BasicLand;
 				} else {
 					return CardRarity.Common;
