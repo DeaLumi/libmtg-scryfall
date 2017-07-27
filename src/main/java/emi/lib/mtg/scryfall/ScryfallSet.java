@@ -1,4 +1,4 @@
-package emi.lib.mtg.scryfall.v2_1;
+package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.HashBiMap;
 import emi.lib.mtg.Card;

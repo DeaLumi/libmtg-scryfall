@@ -1,9 +1,8 @@
-package emi.lib.mtg.scryfall.v2_1;
+package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.EnumHashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.CardRarity;
-import emi.lib.mtg.scryfall.Util;
 
 import java.util.Set;
 import java.util.UUID;

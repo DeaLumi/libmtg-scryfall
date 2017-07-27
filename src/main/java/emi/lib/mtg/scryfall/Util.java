@@ -8,20 +8,20 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
-public class Util {
-	public static int or(Integer in, int def) {
+class Util {
+	static int or(Integer in, int def) {
 		return in != null ? in : def;
 	}
 
-	public static String or(String in, String def) {
+	static String or(String in, String def) {
 		return in != null ? in : def;
 	}
 
-	public static <T> Set<T> orEmpty(Set<T> in) {
+	static <T> Set<T> orEmpty(Set<T> in) {
 		return in != null ? in : Collections.emptySet();
 	}
 
-	public static EnumSet<Color> mapColor(Set<emi.lib.scryfall.api.enums.Color> apiColors) {
+	static EnumSet<Color> mapColor(Set<emi.lib.scryfall.api.enums.Color> apiColors) {
 		EnumSet<Color> out = EnumSet.noneOf(Color.class);
 
 		for (emi.lib.scryfall.api.enums.Color color : apiColors) {
@@ -50,7 +50,7 @@ public class Util {
 		return out;
 	}
 
-	public static CardRarity mapRarity(emi.lib.scryfall.api.Card card) {
+	static CardRarity mapRarity(emi.lib.scryfall.api.Card card) {
 		switch (card.rarity) {
 			case Common:
 				if (card.typeLine != null && card.typeLine.contains("Basic Land")) {
