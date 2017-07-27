@@ -4,10 +4,48 @@ import com.google.common.collect.EnumHashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.CardRarity;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 class ScryfallPrinting implements Card.Printing {
+
+	private final static Comparator<String> COLLECTOR_NUMBER_COMPARATOR = (s1, s2) -> {
+		int n1 = 0;
+		int n2 = 0;
+
+		for (int i = 0; i < Math.min(s1.length(), s2.length()); ++i) {
+			int c1 = s1.charAt(i);
+			int c2 = s2.charAt(i);
+
+			boolean c1d = c1 >= '0' && c1 <= '9';
+			boolean c2d = c2 >= '0' && c2 <= '9';
+
+			if (c1d) {
+				if (c2d) {
+					n1 *= 10;
+					n1 += c1 - '0';
+
+					n2 *= 10;
+					n2 += c2 - '0';
+				} else {
+					return 1;
+				}
+			} else {
+				if (c2d) {
+					return -1;
+				} else {
+					if (n1 != n2) {
+						return n1 - n2;
+					}
+
+					if (c1 != c2) {
+						return c1 - c2;
+					}
+				}
+			}
+		}
+
+		return 0;
+	};
 
 	private final ScryfallSet set;
 	private final ScryfallCard card;
@@ -15,12 +53,16 @@ class ScryfallPrinting implements Card.Printing {
 
 	final EnumHashBiMap<Card.Face.Kind, ScryfallPrintedFace> faces;
 
+	private int variation;
+
 	ScryfallPrinting(ScryfallSet set, ScryfallCard card, emi.lib.scryfall.api.Card cardJson) {
 		this.set = set;
 		this.card = card;
 		this.cardJson = cardJson;
 
 		this.faces = EnumHashBiMap.create(Card.Face.Kind.class);
+
+		this.variation = -1;
 	}
 
 	@Override
@@ -55,7 +97,26 @@ class ScryfallPrinting implements Card.Printing {
 
 	@Override
 	public int variation() {
-		return 0; // TODO: WORK THIS OUT! Necessary for XLHQ image source!
+		if (variation < 0) {
+			Iterator<String> cns = set.printings().stream()
+					.filter(print -> print.card() == this.card())
+					.map(Card.Printing::collectorNumber)
+					.sorted(COLLECTOR_NUMBER_COMPARATOR)
+					.iterator();
+
+			for (int i = 1; cns.hasNext(); ++i) {
+				if (Objects.equals(cns.next(), collectorNumber())) {
+					variation = i;
+					break;
+				}
+			}
+
+			if (variation < 0) {
+				variation = 1;
+			}
+		}
+
+		return variation;
 	}
 
 	@Override
