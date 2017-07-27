@@ -8,7 +8,8 @@ class ScryfallPrintedFace implements Card.Printing.Face {
 
 	private final ScryfallPrinting printing;
 	private final ScryfallFace face;
-	private final emi.lib.scryfall.api.Card cardJson;
+
+	final emi.lib.scryfall.api.Card cardJson;
 
 	ScryfallPrintedFace(ScryfallPrinting printing, ScryfallFace face, emi.lib.scryfall.api.Card cardJson) {
 		this.printing = printing;
