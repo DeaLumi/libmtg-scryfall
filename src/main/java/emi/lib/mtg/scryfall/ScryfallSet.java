@@ -9,7 +9,8 @@ import java.util.UUID;
 class ScryfallSet implements Set {
 
 	private final emi.lib.scryfall.api.Set setJson;
-	private final HashBiMap<UUID, ScryfallPrinting> printings;
+
+	final HashBiMap<UUID, ScryfallPrinting> printings;
 
 	ScryfallSet(emi.lib.scryfall.api.Set setJson) {
 		this.setJson = setJson;

@@ -104,6 +104,7 @@ class ScryfallCardFactory {
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, f -> new ScryfallPrinting(set, card, jsonCard));
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print, front, jsonCard));
 
+		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -127,6 +128,7 @@ class ScryfallCardFactory {
 		ScryfallPrintedFace leftPrint = print.faces.computeIfAbsent(Card.Face.Kind.Left, f -> new ScryfallPrintedFace(print, left, jsonCard));
 		ScryfallPrintedFace rightPrint = print.faces.computeIfAbsent(Card.Face.Kind.Right, f -> new ScryfallPrintedFace(print, right, jsonCard));
 
+		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -150,6 +152,7 @@ class ScryfallCardFactory {
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Left, f -> new ScryfallPrintedFace(print, front, jsonCard));
 		ScryfallPrintedFace flipPrint = print.faces.computeIfAbsent(Card.Face.Kind.Right, f -> new ScryfallPrintedFace(print, flip, jsonCard));
 
+		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -184,6 +187,7 @@ class ScryfallCardFactory {
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print, front, frontJson));
 		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print, back, backJson));
 
+		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -238,6 +242,9 @@ class ScryfallCardFactory {
 		ScryfallPrinting print2 = card2.printings.computeIfAbsent(frontJson2.id, id -> new ScryfallPrinting(set, card2, frontJson2));
 		ScryfallPrintedFace frontPrint2 = print2.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print2, front2, frontJson2));
 		ScryfallPrintedFace backPrint2 = print2.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print2, back, backJson));
+
+		set.printings.put(print1.id(), print1);
+		set.printings.put(print2.id(), print2);
 
 		printings.put(print1.id(), print1);
 		printings.put(print2.id(), print2);
