@@ -6,7 +6,7 @@ import emi.lib.mtg.Set;
 
 import java.util.UUID;
 
-public class ScryfallSet implements Set {
+class ScryfallSet implements Set {
 
 	private final emi.lib.scryfall.api.Set setJson;
 	private final HashBiMap<UUID, ScryfallPrinting> printings;

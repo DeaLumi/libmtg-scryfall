@@ -14,7 +14,7 @@ import java.util.Set;
 
 import static emi.lib.mtg.scryfall.Util.or;
 
-public class ScryfallFace implements Card.Face {
+class ScryfallFace implements Card.Face {
 
 	private final Kind kind;
 	private final emi.lib.scryfall.api.Card cardJson;

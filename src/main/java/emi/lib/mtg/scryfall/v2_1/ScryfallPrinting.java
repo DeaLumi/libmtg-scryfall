@@ -8,7 +8,7 @@ import emi.lib.mtg.scryfall.Util;
 import java.util.Set;
 import java.util.UUID;
 
-public class ScryfallPrinting implements Card.Printing {
+class ScryfallPrinting implements Card.Printing {
 
 	private final ScryfallSet set;
 	private final ScryfallCard card;
