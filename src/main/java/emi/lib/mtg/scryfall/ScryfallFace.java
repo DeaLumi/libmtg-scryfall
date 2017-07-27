@@ -56,7 +56,7 @@ class ScryfallFace implements Card.Face {
 			case Left:
 			case Right:
 				this.color = Collections.unmodifiableSet(EnumSet.copyOf(this.manaCost().color()));
-				this.colorIdentity = Collections.unmodifiableSet(EnumSet.copyOf(this.color()));
+				this.colorIdentity = Collections.unmodifiableSet(EnumSet.copyOf(this.color));
 				break;
 
 			default:
@@ -65,7 +65,7 @@ class ScryfallFace implements Card.Face {
 				this.colorIdentity = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
 		}
 
-		Set<Color> colorIndicator = EnumSet.copyOf(this.color);
+		Set<Color> colorIndicator = this.color.isEmpty() ? EnumSet.noneOf(Color.class) : EnumSet.copyOf(this.color);
 		colorIndicator.removeAll(this.manaCost().color());
 		this.colorIndicator = Collections.unmodifiableSet(colorIndicator);
 	}
