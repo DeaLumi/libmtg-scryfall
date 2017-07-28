@@ -14,7 +14,7 @@ import java.net.URL;
 import java.util.concurrent.*;
 
 @Service.Provider(ImageSource.class)
-@Service.Property.String(name="name", value="Scryfall HQ")
+@Service.Property.String(name="name", value="Scryfall Large")
 @Service.Property.Number(name="priority", value=0.5)
 public class ScryfallImageSource implements ImageSource {
 
@@ -27,7 +27,7 @@ public class ScryfallImageSource implements ImageSource {
 	}
 
 	private static File file(Card.Printing.Face face) throws IOException {
-		File f = new File(new File(PARENT, String.format("s%s", face.printing().set().code())), String.format("%s.png", face.printing().id().toString()));
+		File f = new File(new File(PARENT, String.format("s%s", face.printing().set().code())), String.format("%s.jpg", face.printing().id().toString()));
 
 		if (!f.getParentFile().exists() && !f.getParentFile().mkdirs()) {
 			throw new IOException("Couldn't make parent directory for set " + face.printing().set().code());
@@ -40,7 +40,7 @@ public class ScryfallImageSource implements ImageSource {
 		if (printing instanceof ScryfallPrintedFace) {
 			ScryfallPrintedFace scp = (ScryfallPrintedFace) printing;
 
-			URL pngUrl = scp.cardJson.imageUris.get("png");
+			URL pngUrl = scp.cardJson.imageUris.get("large");
 
 			if (pngUrl != null) {
 				return pngUrl;
@@ -67,12 +67,12 @@ public class ScryfallImageSource implements ImageSource {
 	}
 
 	private static final BlockingDeque<ImageDownloadTask> DOWNLOAD_QUEUE = new LinkedBlockingDeque<>();
-	private static final long DOWNLOAD_DELAY = 100;
+	private static final long DOWNLOAD_DELAY = 150;
 
 	private static final Thread DOWNLOAD_THREAD = new Thread(() -> {
 		try {
 			while (!Thread.currentThread().isInterrupted()) {
-				ImageDownloadTask nextImage = DOWNLOAD_QUEUE.take();
+				ImageDownloadTask nextImage = DOWNLOAD_QUEUE.takeLast();
 
 				try {
 					HttpURLConnection connection = (HttpURLConnection) nextImage.url.openConnection();
@@ -82,7 +82,7 @@ public class ScryfallImageSource implements ImageSource {
 					}
 
 					InputStream in = connection.getInputStream();
-					ImageIO.write(ImageIO.read(in), "png", nextImage.dest);
+					ImageIO.write(ImageIO.read(in), "jpg", nextImage.dest);
 					nextImage.future.complete(nextImage.dest);
 				} catch (IOException ie) {
 					nextImage.future.completeExceptionally(ie);
