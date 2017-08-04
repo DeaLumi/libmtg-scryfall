@@ -1,6 +1,5 @@
 package emi.lib.mtg.scryfall;
 
-import emi.lib.Service;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.ImageSource;
 
@@ -11,12 +10,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingDeque;
 
-@Service.Provider(ImageSource.class)
-@Service.Property.String(name="name", value="Scryfall Large")
-@Service.Property.Number(name="priority", value=0.5)
-public class ScryfallImageSource implements ImageSource {
+public abstract class ScryfallImageSource implements ImageSource {
 
 	private static final File PARENT = new File(new File("images"), "scryfall");
 
@@ -26,8 +25,8 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private static File file(Card.Printing.Face face) throws IOException {
-		File f = new File(new File(PARENT, String.format("s%s", face.printing().set().code())), String.format("%s.jpg", face.printing().id().toString()));
+	private File file(Card.Printing.Face face) throws IOException {
+		File f = new File(new File(new File(PARENT, imageUri()), String.format("s%s", face.printing().set().code())), String.format("%s.jpg", face.printing().id().toString()));
 
 		if (!f.getParentFile().exists() && !f.getParentFile().mkdirs()) {
 			throw new IOException("Couldn't make parent directory for set " + face.printing().set().code());
@@ -36,11 +35,11 @@ public class ScryfallImageSource implements ImageSource {
 		return f;
 	}
 
-	private static URL url(Card.Printing.Face printing) {
+	private URL url(Card.Printing.Face printing) {
 		if (printing instanceof ScryfallPrintedFace) {
 			ScryfallPrintedFace scp = (ScryfallPrintedFace) printing;
 
-			URL pngUrl = scp.cardJson.imageUris.get("large");
+			URL pngUrl = scp.cardJson.imageUris.get(imageUri());
 
 			if (pngUrl != null) {
 				return pngUrl;
@@ -54,15 +53,19 @@ public class ScryfallImageSource implements ImageSource {
 
 	private static class ImageDownloadTask {
 		public final String name;
+		public final Card.Printing.Face facePrint;
 		public final URL url;
 		public final File dest;
+		public final String ext;
 		public final CompletableFuture<File> future;
 
-		public ImageDownloadTask(File dest, URL url, Card.Printing.Face face) {
+		public ImageDownloadTask(File dest, URL url, Card.Printing.Face face, String ext) {
 			this.name = face.printing().card().name();
+			this.facePrint = face;
 			this.url = url;
 			this.dest = dest;
 			this.future = new CompletableFuture<>();
+			this.ext = ext;
 		}
 	}
 
@@ -82,7 +85,8 @@ public class ScryfallImageSource implements ImageSource {
 					}
 
 					InputStream in = connection.getInputStream();
-					ImageIO.write(ImageIO.read(in), "jpg", nextImage.dest);
+					ImageIO.write(ImageIO.read(in), nextImage.ext, nextImage.dest);
+					// TODO: Edit the image. Rotate for splits & round corners.
 					nextImage.future.complete(nextImage.dest);
 				} catch (IOException ie) {
 					nextImage.future.completeExceptionally(ie);
@@ -100,6 +104,10 @@ public class ScryfallImageSource implements ImageSource {
 		DOWNLOAD_THREAD.start();
 	}
 
+	protected abstract String imageUri();
+
+	protected abstract String extension();
+
 	@Override
 	public InputStream open(Card.Printing.Face face) throws IOException {
 		File file = file(face);
@@ -114,7 +122,7 @@ public class ScryfallImageSource implements ImageSource {
 			return null;
 		}
 
-		ImageDownloadTask task = new ImageDownloadTask(file, url, face);
+		ImageDownloadTask task = new ImageDownloadTask(file, url, face, extension());
 
 		try {
 			DOWNLOAD_QUEUE.put(task);
