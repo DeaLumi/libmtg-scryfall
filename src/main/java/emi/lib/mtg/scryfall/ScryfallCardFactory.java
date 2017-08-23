@@ -34,7 +34,7 @@ class ScryfallCardFactory {
 						System.err.println("I can't tell halves of BFM apart. You're on your own with this one, sorry...");
 						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 					} else if (jsonCard.allParts.size() == 2) {
-						if (jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().get().uri.getPath().matches("/cards/t[a-z]{3}/[0-9]+")) {
+						if (jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().get().uri.getPath().matches("/cards/t[a-z0-9]{3}/[0-9]+")) {
 							// This is just a Card/Token pair. Tokens aren't cards, so ignore them.
 							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 						} else {
@@ -97,6 +97,11 @@ class ScryfallCardFactory {
 									 BiMap<String, ScryfallCard> cards,
 									 BiMap<UUID, ScryfallPrinting> printings) {
 		jsonCards.values().remove(jsonCard);
+
+		if (jsonCard.typeLine.startsWith("Token")) {
+			System.err.println("Attempting to createSimple " + jsonCard.typeLine + " / " + jsonCard.name + " (" + jsonCard.setName + ")");
+			return;
+		}
 
 		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
 		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(jsonCard));
