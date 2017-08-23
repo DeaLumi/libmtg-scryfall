@@ -9,6 +9,7 @@ import emi.lib.mtg.Card;
 import emi.lib.mtg.DataSource;
 import emi.lib.scryfall.Scryfall;
 import emi.lib.scryfall.api.Catalog;
+import emi.lib.scryfall.api.enums.CardLayout;
 import emi.lib.scryfall.api.enums.SetType;
 
 import java.io.*;
@@ -131,6 +132,10 @@ public class ScryfallDataSource implements DataSource {
 			emi.lib.scryfall.api.Set set = Scryfall.GSON.fromJson(reader, emi.lib.scryfall.api.Set.class);
 			expect(code, set.code);
 
+			if (set.setType == SetType.Token) {
+				continue;
+			}
+
 			jsonSets.put(set.code, set);
 		}
 		reader.endObject();
@@ -141,6 +146,10 @@ public class ScryfallDataSource implements DataSource {
 			String id = reader.nextName();
 			emi.lib.scryfall.api.Card card = Scryfall.GSON.fromJson(reader, emi.lib.scryfall.api.Card.class);
 			expect(id, card.id.toString());
+
+			if (card.layout == CardLayout.Token) {
+				continue;
+			}
 
 			jsonCards.put(card.id, card);
 		}
