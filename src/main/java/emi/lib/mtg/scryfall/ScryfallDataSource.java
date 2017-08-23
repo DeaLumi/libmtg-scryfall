@@ -51,6 +51,32 @@ public class ScryfallDataSource implements DataSource {
 		//		System.err.println(String.format("Ignoring requireSamePlayable; write this code already! (%s)", test.name));
 	}
 
+	private static int status = 0;
+
+	private static void advanceStatus() {
+		System.out.print("\033[1D");
+		switch (status % 4) {
+			case 0:
+				System.out.print("/");
+				break;
+			case 1:
+				System.out.print("-");
+				break;
+			case 2:
+				System.out.print("\\");
+				break;
+			case 3:
+				System.out.print("|");
+				break;
+			default:
+				System.out.print("?");
+				break;
+		}
+		System.out.flush();
+
+		++status;
+	}
+
 	public ScryfallDataSource() throws IOException {
 		File dataFile = new File(new File(new File("data"), "scryfall"), "data.json");
 
@@ -62,7 +88,7 @@ public class ScryfallDataSource implements DataSource {
 			System.out.println("Sets file needs update. Please wait...");
 			Scryfall api = new Scryfall();
 			List<emi.lib.scryfall.api.Set> sets = api.sets();
-			List<List<emi.lib.scryfall.api.Card>> cardss = new ArrayList<>();
+			List<emi.lib.scryfall.api.Card> cards = api.cards();
 
 			JsonWriter writer = Scryfall.GSON.newJsonWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
 
@@ -80,36 +106,43 @@ public class ScryfallDataSource implements DataSource {
 
 				writer.name(set.code);
 				Scryfall.GSON.toJson(set, emi.lib.scryfall.api.Set.class, writer);
-				cardss.add(api.query(String.format("e:%s", set.code)));
 				System.out.println("done!");
 			}
 			writer.endObject();
 
 			writer.name("printings");
 			writer.beginObject();
-			System.out.print("Cards");
+			System.out.print("Cards  ");
 			System.out.flush();
-			for (List<emi.lib.scryfall.api.Card> cards : cardss) {
-				for (emi.lib.scryfall.api.Card card : cards) {
-					// Null out some excess data here to save hard drive space.
-					card.eur = null;
-					card.usd = null;
-					card.tix = null;
-					card.relatedUris = null;
-					card.purchaseUris = null;
-					card.legalities = null; // TODO: We might want to bring this back soon...
-
-					writer.name(card.id.toString());
-					Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
+			int statusCounter = 0;
+			for (emi.lib.scryfall.api.Card card : cards) {
+				if (card.layout == CardLayout.Token) {
+					continue;
 				}
-				System.out.print(".");
-				System.out.flush();
+
+				// Null out some excess data here to save hard drive space.
+				card.eur = null;
+				card.usd = null;
+				card.tix = null;
+				card.relatedUris = null;
+				card.purchaseUris = null;
+				card.legalities = null; // TODO: We might want to bring this back soon...
+
+				writer.name(card.id.toString());
+				Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
+
+				++statusCounter;
+				if (statusCounter == 150) {
+					advanceStatus();
+					statusCounter = 0;
+				}
 			}
 			writer.endObject();
 
 			writer.endObject();
 			writer.close();
 
+			System.out.println();
 			System.out.println("Done! Cleaning up...");
 
 			System.gc();
