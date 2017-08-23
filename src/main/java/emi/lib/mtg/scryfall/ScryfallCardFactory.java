@@ -21,6 +21,7 @@ class ScryfallCardFactory {
 					// Right now, the only card that trips this behavior is Curse of the Fire Penguin.
 					if ("Curse of the Fire Penguin // ???".equals(jsonCard.name)) {
 						createFlip(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+						return;
 					} else {
 						System.err.println("Add support for fancy split/flip card " + jsonCard.name);
 					}
@@ -29,14 +30,17 @@ class ScryfallCardFactory {
 						// oh god
 						System.err.println("I'm not supporting Who // What // When // Where // Why. I simply won't.");
 						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+						return;
 					} else if ("B.F.M. (Big Furry Monster)".equals(jsonCard.name)) {
 						// eh
 						System.err.println("I can't tell halves of BFM apart. You're on your own with this one, sorry...");
 						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+						return;
 					} else if (jsonCard.allParts.size() == 2) {
 						if (jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().get().uri.getPath().matches("/cards/t[a-z0-9]{3}/[0-9]+")) {
 							// This is just a Card/Token pair. Tokens aren't cards, so ignore them.
 							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+							return;
 						} else {
 							System.err.println("Add support for fancy multipart card " + jsonCard.name);
 						}
@@ -45,28 +49,29 @@ class ScryfallCardFactory {
 					}
 				} else {
 					createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+					return;
 				}
 				break;
 			}
 
 			case Split: {
 				createSplit(jsonSets, jsonCards, jsonCard, sets, cards, printings);
-				break;
+				return;
 			}
 
 			case Flip: {
 				createFlip(jsonSets, jsonCards, jsonCard, sets, cards, printings);
-				break;
+				return;
 			}
 
 			case Transform: {
 				createTransform(jsonSets, jsonCards, jsonCard, sets, cards, printings);
-				break;
+				return;
 			}
 
 			case Meld: {
 				createMeld(jsonSets, jsonCards, jsonCard, sets, cards, printings);
-				break;
+				return;
 			}
 
 			case Leveler:
@@ -75,19 +80,22 @@ class ScryfallCardFactory {
 			case Scheme:
 			case Vanguard: {
 				createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				return;
 			}
 
 			case Token:
 			case Emblem: {
-				assert false : "Tokens are not cards!";
+				System.err.println("Tokens are not cards! Please exclude the set " + jsonCard.setName + " / " + jsonCard.set + " if possible.");
 				break;
 			}
 
 			default: {
-				assert false;
-				break;
+				throw new Error("Unexpected card layout " + jsonCard.layout);
 			}
 		}
+
+		System.err.println("Unhandled card printing: " + jsonCard.name + " / " + jsonCard.setName);
+		jsonCards.values().remove(jsonCard);
 	}
 
 	private static void createSimple(BiMap<String, Set> jsonSets,
