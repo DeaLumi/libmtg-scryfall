@@ -89,6 +89,7 @@ public class ScryfallDataSource implements DataSource {
 			Scryfall api = new Scryfall();
 			List<emi.lib.scryfall.api.Set> sets = api.sets();
 			List<emi.lib.scryfall.api.Card> cards = api.cards();
+			Set<String> droppedSets = new HashSet<>();
 
 			JsonWriter writer = Scryfall.GSON.newJsonWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
 
@@ -101,6 +102,7 @@ public class ScryfallDataSource implements DataSource {
 
 				if (set.setType == SetType.Token) {
 					System.out.println("ignored (token set)");
+					droppedSets.add(set.code);
 					continue;
 				}
 
@@ -117,6 +119,10 @@ public class ScryfallDataSource implements DataSource {
 			int statusCounter = 0;
 			for (emi.lib.scryfall.api.Card card : cards) {
 				if (card.layout == CardLayout.Token) {
+					continue;
+				}
+
+				if (droppedSets.contains(card.set)) {
 					continue;
 				}
 

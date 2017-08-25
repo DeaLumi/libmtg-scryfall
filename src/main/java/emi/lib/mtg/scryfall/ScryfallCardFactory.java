@@ -109,6 +109,9 @@ class ScryfallCardFactory {
 		if (jsonCard.typeLine.startsWith("Token")) {
 			System.err.println("Attempting to createSimple " + jsonCard.typeLine + " / " + jsonCard.name + " (" + jsonCard.setName + ")");
 			return;
+		} else if (jsonCard.typeLine.startsWith("Card")) {
+			System.err.println("Attempting to createSimple " + jsonCard.typeLine + " / " + jsonCard.name + " (" + jsonCard.setName + ")");
+			return;
 		}
 
 		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);

@@ -21,7 +21,7 @@ public abstract class ScryfallImageSource implements ImageSource {
 
 	static {
 		if (!PARENT.exists() && !PARENT.mkdirs()) {
-			throw new Error("Couldn't create image directory for ScryfallImageSourceV2");
+			throw new Error("Couldn't create image directory for ScryfallImageSource");
 		}
 	}
 
