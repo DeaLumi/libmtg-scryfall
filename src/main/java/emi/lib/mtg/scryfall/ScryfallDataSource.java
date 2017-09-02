@@ -21,34 +21,10 @@ import java.util.*;
 public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
 
-	private final BiMap<UUID, ScryfallPrinting> printings;
-	private final BiMap<String, ScryfallCard> cards;
-	private final BiMap<String, ScryfallSet> sets;
-
 	private static void expect(Object input, Object expected) throws IOException {
 		if (!Objects.equals(input, expected)) {
 			throw new IOException(String.format("Expected to see \'%s\', but got \'%s\' instead!", Objects.toString(input), Objects.toString(expected)));
 		}
-	}
-
-	private static void requireSamePlayable(emi.lib.scryfall.api.Card oracle, emi.lib.scryfall.api.Card test) throws IOException {
-		expect(test.name, oracle.name);
-		expect(test.manaCost, oracle.manaCost);
-		expect(test.convertedManaCost, oracle.convertedManaCost);
-		expect(test.typeLine, oracle.typeLine);
-		expect(test.oracleText, oracle.oracleText);
-		expect(test.power, oracle.power);
-		expect(test.toughness, oracle.toughness);
-		expect(test.loyalty, oracle.loyalty);
-		expect(test.handModifier, oracle.handModifier);
-		expect(test.colors, oracle.colors);
-		expect(test.layout, oracle.layout);
-		expect(test.cardFaces, oracle.cardFaces);
-	}
-
-	private static void requireSamePlayable(ScryfallCard oracle, emi.lib.scryfall.api.Card test) throws IOException {
-		// TODO: The above one was the easy one...
-		//		System.err.println(String.format("Ignoring requireSamePlayable; write this code already! (%s)", test.name));
 	}
 
 	private static int status = 0;
@@ -76,6 +52,10 @@ public class ScryfallDataSource implements DataSource {
 
 		++status;
 	}
+
+	private final BiMap<UUID, ScryfallPrinting> printings;
+	private final BiMap<String, ScryfallCard> cards;
+	private final BiMap<String, ScryfallSet> sets;
 
 	public ScryfallDataSource() throws IOException {
 		File dataFile = new File(new File(new File("data"), "scryfall"), "data.json");
@@ -138,7 +118,7 @@ public class ScryfallDataSource implements DataSource {
 				Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
 
 				++statusCounter;
-				if (statusCounter == 150) {
+				if (statusCounter == 25) {
 					advanceStatus();
 					statusCounter = 0;
 				}
