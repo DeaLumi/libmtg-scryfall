@@ -165,8 +165,8 @@ class ScryfallCardFactory {
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
 
-		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Left, f -> new ScryfallPrintedFace(print, front, jsonCard));
-		ScryfallPrintedFace flipPrint = print.faces.computeIfAbsent(Card.Face.Kind.Right, f -> new ScryfallPrintedFace(print, flip, jsonCard));
+		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print, front, jsonCard));
+		ScryfallPrintedFace flipPrint = print.faces.computeIfAbsent(Card.Face.Kind.Flipped, f -> new ScryfallPrintedFace(print, flip, jsonCard));
 
 		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
