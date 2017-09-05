@@ -42,10 +42,14 @@ class ScryfallCardFactory {
 							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 							return;
 						} else {
-							System.err.println("Add support for fancy multipart card " + jsonCard.name);
+							System.err.println("Add support for fancy two-part card " + jsonCard.name);
+							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+							return;
 						}
 					} else {
-						System.err.println("Add support for fancy multipart card " + jsonCard.name);
+						System.err.println("Add support for fancy n-part card " + jsonCard.name);
+						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+						return;
 					}
 				} else {
 					createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
