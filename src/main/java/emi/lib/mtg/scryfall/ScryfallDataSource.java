@@ -98,7 +98,7 @@ public class ScryfallDataSource implements DataSource {
 			System.out.flush();
 			int statusCounter = 0;
 			for (emi.lib.scryfall.api.Card card : cards) {
-				if (card.layout == CardLayout.Token) {
+				if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleSidedToken) {
 					continue;
 				}
 
@@ -166,7 +166,7 @@ public class ScryfallDataSource implements DataSource {
 			emi.lib.scryfall.api.Card card = Scryfall.GSON.fromJson(reader, emi.lib.scryfall.api.Card.class);
 			expect(id, card.id.toString());
 
-			if (card.layout == CardLayout.Token) {
+			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleSidedToken) {
 				continue;
 			}
 
