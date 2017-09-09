@@ -182,30 +182,19 @@ class ScryfallCardFactory {
 										Map<String, ScryfallSet> sets,
 										Map<String, ScryfallCard> cards,
 										Map<UUID, ScryfallPrinting> printings) {
-		emi.lib.scryfall.api.Card backJson = jsonCard.allParts.stream()
-				.map(part -> jsonCards.get(part.id))
-				.filter(json -> json.collectorNumber.matches("^[0-9]+b$"))
-				.findAny()
-				.orElseThrow(AssertionError::new);
+		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
 
-		emi.lib.scryfall.api.Card frontJson = jsonCard.allParts.stream()
-				.map(part -> jsonCards.get(part.id))
-				.filter(json -> json != backJson)
-				.findAny()
-				.orElseThrow(AssertionError::new);
-
-		jsonCards.values().remove(backJson);
-		jsonCards.values().remove(frontJson);
+		jsonCards.values().remove(jsonCard);
 
 		ScryfallSet set = sets.computeIfAbsent(jsonCard.set, setCode -> new ScryfallSet(jsonSets.get(setCode)));
 
-		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
-		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(frontJson));
-		ScryfallFace back = card.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallFace(f, backJson));
+		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(f, jsonCard, jsonCard.cardFaces.get(0)));
+		ScryfallFace back = card.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallFace(f, jsonCard, jsonCard.cardFaces.get(1)));
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
-		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print, front, frontJson));
-		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print, back, backJson));
+
+		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print, front, jsonCard));
+		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print, back, jsonCard));
 
 		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
