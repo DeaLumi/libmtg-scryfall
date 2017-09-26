@@ -87,10 +87,13 @@ class ScryfallFace implements Card.Face {
 
 			switch (this.kind()) {
 				case Front:
+				case Other:
+					manaCost = this.faceJson != null ? this.faceJson.manaCost : this.cardJson.manaCost;
+					break;
+
 				case Flipped: // Flip cards use the upright (normal) mana cost.
 				case Transformed:
-				case Other:
-					manaCost = this.cardJson.manaCost;
+					manaCost = this.cardJson.cardFaces.get(0).manaCost;
 					break;
 
 				case Left:
@@ -103,7 +106,7 @@ class ScryfallFace implements Card.Face {
 					return null;
 			}
 
-			this.manaCost = BasicManaCost.parse(manaCost);
+			this.manaCost = BasicManaCost.parse(or(manaCost, ""));
 		}
 
 		return this.manaCost;
