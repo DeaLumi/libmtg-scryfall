@@ -79,8 +79,7 @@ class ScryfallCardFactory {
 			}
 
 			case Leveler:
-			case Plane:
-			case Phenomenon:
+			case Planar:
 			case Scheme:
 			case Vanguard: {
 				createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
@@ -88,6 +87,7 @@ class ScryfallCardFactory {
 			}
 
 			case Token:
+			case DoubleFacedToken:
 			case Emblem: {
 				System.err.println("Tokens are not cards! Please exclude the set " + jsonCard.setName + " / " + jsonCard.set + " if possible.");
 				break;
