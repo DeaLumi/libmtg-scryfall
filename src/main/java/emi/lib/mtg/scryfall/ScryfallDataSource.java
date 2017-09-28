@@ -15,6 +15,10 @@ import emi.lib.scryfall.api.enums.SetType;
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.*;
 
@@ -58,20 +62,21 @@ public class ScryfallDataSource implements DataSource {
 	private final BiMap<String, ScryfallSet> sets;
 
 	public ScryfallDataSource() throws IOException {
-		File dataFile = new File(new File(new File("data"), "scryfall"), "data.json");
+		Path dataFile = Paths.get("data", "scryfall", "data.json");
 
-		if (!dataFile.getParentFile().exists() && !dataFile.getParentFile().mkdirs()) {
-			throw new IOException("Couldn't create parent directories for data file.");
+		if (!Files.exists(dataFile.getParent())) {
+			Files.createDirectories(dataFile.getParent());
 		}
 
-		if (!dataFile.exists() || Instant.now().minusMillis(UPDATE_INTERVAL).isAfter(Instant.ofEpochMilli(dataFile.lastModified()))) {
+		if (!Files.exists(dataFile) || Instant.now().minusMillis(UPDATE_INTERVAL).isAfter(Files.getLastModifiedTime(dataFile).toInstant())) {
 			System.out.println("Sets file needs update. Please wait...");
 			Scryfall api = new Scryfall();
 			List<emi.lib.scryfall.api.Set> sets = api.sets();
 			List<emi.lib.scryfall.api.Card> cards = api.cards();
 			Set<String> droppedSets = new HashSet<>();
 
-			JsonWriter writer = Scryfall.GSON.newJsonWriter(new OutputStreamWriter(new FileOutputStream(dataFile), StandardCharsets.UTF_8));
+			Path tmp = Files.createTempFile("scryfall-data", ".json");
+			JsonWriter writer = Scryfall.GSON.newJsonWriter(new OutputStreamWriter(Files.newOutputStream(tmp), StandardCharsets.UTF_8));
 
 			writer.beginObject();
 
@@ -128,6 +133,9 @@ public class ScryfallDataSource implements DataSource {
 			writer.endObject();
 			writer.close();
 
+			Files.copy(tmp, dataFile, StandardCopyOption.REPLACE_EXISTING);
+			Files.delete(tmp);
+
 			System.out.println();
 			System.out.println("Done! Cleaning up...");
 
@@ -140,7 +148,7 @@ public class ScryfallDataSource implements DataSource {
 		BiMap<String, emi.lib.scryfall.api.Set> jsonSets = HashBiMap.create();
 		BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards = HashBiMap.create();
 
-		JsonReader reader = Scryfall.GSON.newJsonReader(new InputStreamReader(new FileInputStream(dataFile), StandardCharsets.UTF_8));
+		JsonReader reader = Scryfall.GSON.newJsonReader(new InputStreamReader(Files.newInputStream(dataFile), StandardCharsets.UTF_8));
 
 		reader.beginObject();
 
