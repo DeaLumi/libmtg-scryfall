@@ -24,6 +24,10 @@ class Util {
 	static EnumSet<Color> mapColor(Set<emi.lib.scryfall.api.enums.Color> apiColors) {
 		EnumSet<Color> out = EnumSet.noneOf(Color.class);
 
+		if (apiColors == null) {
+			return out;
+		}
+
 		for (emi.lib.scryfall.api.enums.Color color : apiColors) {
 			switch (color) {
 				case White:
