@@ -17,6 +17,10 @@ class Util {
 		return in != null ? in : def;
 	}
 
+	static <T> T or(T in, T def) {
+		return in != null ? in : def;
+	}
+
 	static <T> Set<T> orEmpty(Set<T> in) {
 		return in != null ? in : Collections.emptySet();
 	}

@@ -12,7 +12,9 @@ import emi.lib.scryfall.api.Catalog;
 import emi.lib.scryfall.api.enums.CardLayout;
 import emi.lib.scryfall.api.enums.SetType;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -112,11 +114,6 @@ public class ScryfallDataSource implements DataSource {
 				}
 
 				// Null out some excess data here to save hard drive space.
-				card.eur = null;
-				card.usd = null;
-				card.tix = null;
-				card.relatedUris = null;
-				card.purchaseUris = null;
 				card.legalities = null; // TODO: We might want to bring this back soon...
 
 				writer.name(card.id.toString());

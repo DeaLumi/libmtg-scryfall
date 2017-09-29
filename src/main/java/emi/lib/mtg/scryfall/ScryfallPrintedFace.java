@@ -10,11 +10,13 @@ class ScryfallPrintedFace implements Card.Printing.Face {
 	private final ScryfallFace face;
 
 	final emi.lib.scryfall.api.Card cardJson;
+	final emi.lib.scryfall.api.Card.Face faceJson;
 
-	ScryfallPrintedFace(ScryfallPrinting printing, ScryfallFace face, emi.lib.scryfall.api.Card cardJson) {
+	ScryfallPrintedFace(ScryfallPrinting printing, ScryfallFace face, emi.lib.scryfall.api.Card cardJson, emi.lib.scryfall.api.Card.Face faceJson) {
 		this.printing = printing;
 		this.face = face;
 		this.cardJson = cardJson;
+		this.faceJson = faceJson;
 	}
 
 	@Override
@@ -29,6 +31,6 @@ class ScryfallPrintedFace implements Card.Printing.Face {
 
 	@Override
 	public String flavor() {
-		return or(cardJson.flavorText, "");
+		return or(faceJson != null ? faceJson.flavorText : cardJson.flavorText, "");
 	}
 }

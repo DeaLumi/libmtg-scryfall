@@ -39,13 +39,13 @@ public abstract class ScryfallImageSource implements ImageSource {
 		if (printing instanceof ScryfallPrintedFace) {
 			ScryfallPrintedFace scp = (ScryfallPrintedFace) printing;
 
-			URL pngUrl = scp.cardJson.imageUris.get(imageUri());
-
-			if (pngUrl != null) {
-				return pngUrl;
+			if (scp.faceJson != null && scp.faceJson.imageUris != null) {
+				return scp.faceJson.imageUris.get(imageUri());
+			} else if (scp.cardJson.imageUris != null) {
+				return scp.cardJson.imageUris.get(imageUri());
+			} else {
+				return null;
 			}
-
-			return scp.cardJson.imageUri;
 		} else {
 			return null; // TODO: We may be able to find an image from Scryfall anyway.
 		}

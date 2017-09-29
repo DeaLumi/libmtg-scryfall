@@ -13,6 +13,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import static emi.lib.mtg.scryfall.Util.or;
+import static emi.lib.mtg.scryfall.Util.orEmpty;
 
 class ScryfallFace implements Card.Face {
 
@@ -40,138 +41,116 @@ class ScryfallFace implements Card.Face {
 	}
 
 	private void initColor() {
-		if (this.color != null && this.colorIndicator != null && this.colorIdentity != null) {
+		if (color != null && colorIndicator != null && colorIdentity != null) {
 			return;
 		}
 
 		switch (this.kind()) {
 			case Front:
 			case Flipped:
-			case Transformed:
-			case Other:
-				this.color = Collections.unmodifiableSet(Util.mapColor(this.cardJson.colors));
-				this.colorIdentity = Collections.unmodifiableSet(Util.mapColor(this.cardJson.colorIdentity));
+				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colors)));
+				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colorIndicator)));
 				break;
 
+			case Transformed:
 			case Left:
 			case Right:
-				this.color = Collections.unmodifiableSet(EnumSet.copyOf(this.manaCost().color()));
-				this.colorIdentity = Collections.unmodifiableSet(EnumSet.copyOf(this.color));
+				// Have to check for faceJson here; meld backsides are still separate Card objects.
+				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null ? faceJson.colors : cardJson.colors)));
+				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null ? faceJson.colorIndicator : cardJson.colorIndicator)));
 				break;
 
-			default:
+			case Other:
 				assert false;
-				this.color = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
-				this.colorIdentity = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
+				color = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
+				colorIndicator = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
+				break;
 		}
 
-		Set<Color> colorIndicator = this.color.isEmpty() ? EnumSet.noneOf(Color.class) : EnumSet.copyOf(this.color);
-		colorIndicator.removeAll(this.manaCost().color());
-		this.colorIndicator = Collections.unmodifiableSet(colorIndicator);
+		EnumSet<Color> colorIdentity = EnumSet.noneOf(Color.class);
+		colorIdentity.addAll(color);
+		colorIdentity.addAll(colorIndicator);
+		this.colorIdentity = colorIdentity;
 	}
 
 	@Override
 	public Kind kind() {
-		return this.kind;
+		return kind;
 	}
 
 	@Override
 	public String name() {
-		return or(this.faceJson != null ? this.faceJson.name : this.cardJson.name, "");
+		return or(faceJson != null ? faceJson.name : cardJson.name, "");
 	}
 
 	@Override
 	public ManaCost manaCost() {
-		if (this.manaCost == null) {
-			String manaCost;
-
-			switch (this.kind()) {
-				case Front:
-				case Other:
-					manaCost = this.faceJson != null ? this.faceJson.manaCost : this.cardJson.manaCost;
-					break;
-
-				case Flipped: // Flip cards use the upright (normal) mana cost.
-				case Transformed:
-					manaCost = this.cardJson.cardFaces.get(0).manaCost;
-					break;
-
-				case Left:
-				case Right:
-					manaCost = this.faceJson.manaCost;
-					break;
-
-				default:
-					assert false;
-					return null;
-			}
-
-			this.manaCost = BasicManaCost.parse(or(manaCost, ""));
+		if (manaCost == null) {
+			manaCost = BasicManaCost.parse(or(faceJson != null ? faceJson.manaCost : cardJson.manaCost, ""));
 		}
 
 		return this.manaCost;
 	}
 
 	@Override
+	public double convertedManaCost() {
+		return cardJson.cmc != null ? cardJson.cmc : 0.0;
+	}
+
+	@Override
 	public Set<Color> colorIndicator() {
 		initColor();
-		return this.colorIndicator;
+		return colorIndicator;
 	}
 
 	@Override
 	public Set<Color> color() {
 		initColor();
-		return this.color;
-	}
-
-	@Override
-	public Set<Color> colorIdentity() {
-		initColor();
-		return this.colorIdentity;
+		return color;
 	}
 
 	@Override
 	public CardTypeLine type() {
-		if (this.typeLine == null) {
-			String typeLine = this.cardJson.typeLine;
+		if (typeLine == null) {
+			String typeLine = cardJson.typeLine;
 
-			if (this.faceJson != null && this.faceJson.typeLine != null) {
-				typeLine = this.faceJson.typeLine;
+			if (faceJson != null && faceJson.typeLine != null) {
+				typeLine = faceJson.typeLine;
 			}
 
 			this.typeLine = BasicCardTypeLine.parse(typeLine);
 		}
 
-		return this.typeLine;
+		return typeLine;
 	}
 
 	@Override
 	public String rules() {
-		return or(this.faceJson != null ? this.faceJson.oracleText : this.cardJson.oracleText, "");
+		return or(faceJson != null ? faceJson.oracleText : cardJson.oracleText, "");
 	}
 
 	@Override
 	public String power() {
-		return or(this.faceJson != null ? this.faceJson.power : this.cardJson.power, "");
+		return or(faceJson != null ? faceJson.power : cardJson.power, "");
 	}
 
 	@Override
 	public String toughness() {
-		return or(this.faceJson != null ? this.faceJson.toughness : this.cardJson.toughness, "");
+		return or(faceJson != null ? faceJson.toughness : cardJson.toughness, "");
 	}
 
 	@Override
 	public String loyalty() {
-		return or(this.cardJson.loyalty, "");
+		return or(cardJson.loyalty, "");
 	}
 
 	@Override
 	public String handModifier() {
-		return or(this.cardJson.handModifier, "");
+		return or(cardJson.handModifier, "");
 	}
 
 	@Override
 	public String lifeModifier() {
-		return or(this.cardJson.lifeModifier, "");
+		return or(cardJson.lifeModifier, "");
 	}
 }
