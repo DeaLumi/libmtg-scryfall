@@ -211,7 +211,7 @@ class ScryfallCardFactory {
 
 		emi.lib.scryfall.api.Card backJson = jsonCard.allParts.stream()
 				.map(part -> jsonCards.get(part.id))
-				.filter(card -> card.collectorNumber.matches("^[0-9]+b$"))
+				.filter(card -> card.collectorNumber.matches("^[0-9]+bs?$"))
 				.findAny()
 				.orElseThrow(AssertionError::new);
 
