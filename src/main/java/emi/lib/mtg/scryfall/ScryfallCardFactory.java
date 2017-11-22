@@ -78,6 +78,8 @@ class ScryfallCardFactory {
 				return;
 			}
 
+			case Augment:
+			case Host:
 			case Leveler:
 			case Planar:
 			case Scheme:
