@@ -37,7 +37,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	private final BiMap<UUID, ScryfallPrinting> printings;
-	private final BiMap<String, ScryfallCard> cards;
+	private final BiMap<UUID, ScryfallCard> cards;
 	private final BiMap<String, ScryfallSet> sets;
 
 	public ScryfallDataSource() throws IOException {
@@ -57,11 +57,6 @@ public class ScryfallDataSource implements DataSource {
 	@Override
 	public Set<? extends Card> cards() {
 		return cards.values();
-	}
-
-	@Override
-	public Card card(String name) {
-		return cards.get(name);
 	}
 
 	@Override

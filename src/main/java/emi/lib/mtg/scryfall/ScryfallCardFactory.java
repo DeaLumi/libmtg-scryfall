@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import emi.lib.mtg.Card;
 import emi.lib.scryfall.api.Set;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 
@@ -12,19 +13,14 @@ class ScryfallCardFactory {
 					   BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
 					   emi.lib.scryfall.api.Card jsonCard,
 					   BiMap<String, ScryfallSet> sets,
-					   BiMap<String, ScryfallCard> cards,
+					   BiMap<UUID, ScryfallCard> cards,
 					   BiMap<UUID, ScryfallPrinting> printings) {
 		switch (jsonCard.layout) {
 			case Normal: {
 				// TODO: Oh my god this is all so gross.
 				if (jsonCard.cardFaces != null && !jsonCard.cardFaces.isEmpty()) {
-					// Right now, the only card that trips this behavior is Curse of the Fire Penguin.
-					if ("Curse of the Fire Penguin // ???".equals(jsonCard.name)) {
-						createFlip(jsonSets, jsonCards, jsonCard, sets, cards, printings);
-						return;
-					} else {
-						System.err.println("Add support for fancy split/flip card " + jsonCard.name);
-					}
+					System.err.println("Add support for fancy split/flip card " + jsonCard.name);
+					createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 				} else if (jsonCard.allParts != null && jsonCard.allParts.size() > 1) {
 					if ("Who".equals(jsonCard.name) || "What".equals(jsonCard.name) || "When".equals(jsonCard.name) || "Where".equals(jsonCard.name) || "Why".equals(jsonCard.name)) {
 						// oh god
@@ -37,7 +33,12 @@ class ScryfallCardFactory {
 						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 						return;
 					} else if (jsonCard.allParts.size() == 2) {
-						if (jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().get().uri.getPath().matches("/cards/t[a-z0-9]{3}/[0-9]+")) {
+						emi.lib.scryfall.api.Card.Part part = jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().orElse(null);
+						if (part == null) {
+							System.err.println("Eff you Unstable! (" + jsonCard.name + ")");
+							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+							return;
+						} else if (part.uri.getPath().matches("/cards/t[a-z0-9]{3}/[0-9]+")) {
 							// This is just a Card/Token pair. Tokens aren't cards, so ignore them.
 							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 							return;
@@ -104,11 +105,56 @@ class ScryfallCardFactory {
 		jsonCards.values().remove(jsonCard);
 	}
 
+	private static UUID calculateCardUUID(BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards, emi.lib.scryfall.api.Card jsonCard) {
+		StringBuilder sb = new StringBuilder();
+		switch (jsonCard.layout) {
+			case Normal:
+				sb.append(jsonCard.name).append('\n').append(jsonCard.oracleText);
+				break;
+			case Split:
+			case Flip:
+			case Transform:
+				sb.append(jsonCard.cardFaces.get(0).name).append('\n');
+				sb.append(jsonCard.cardFaces.get(0).oracleText).append('\n');
+				sb.append("\n//\n\n");
+				sb.append(jsonCard.cardFaces.get(1).name).append('\n');
+				sb.append(jsonCard.cardFaces.get(1).oracleText);
+				break;
+			case Meld:
+				System.err.println("Warning: Unnecessary MeldParts sorting.");
+				return calculateCardUUID(new MeldParts(jsonCards, jsonCard), jsonCard);
+			case Augment:
+			case Host:
+			case Leveler:
+			case Planar:
+			case Scheme:
+			case Vanguard:
+				sb.append(jsonCard.name).append('\n').append(jsonCard.oracleText);
+				break;
+			case Token:
+			case DoubleFacedToken:
+			case Emblem:
+				throw new Error("Attempt to calculate UUID of a token or emblem!");
+			default:
+				throw new Error("Can't calculate UUID for unknown card layout " + jsonCard.layout);
+		}
+
+		return UUID.nameUUIDFromBytes(sb.toString().getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static UUID calculateCardUUID(MeldParts parts, emi.lib.scryfall.api.Card front) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(front.name).append('\n').append(front.oracleText).append('\n');
+		sb.append("\n//\n\n");
+		sb.append(parts.back.name).append('\n').append(parts.back.oracleText);
+		return UUID.nameUUIDFromBytes(sb.toString().getBytes(StandardCharsets.UTF_8));
+	}
+
 	private static void createSimple(BiMap<String, Set> jsonSets,
 									 BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
 									 emi.lib.scryfall.api.Card jsonCard,
 									 BiMap<String, ScryfallSet> sets,
-									 BiMap<String, ScryfallCard> cards,
+									 BiMap<UUID, ScryfallCard> cards,
 									 BiMap<UUID, ScryfallPrinting> printings) {
 		jsonCards.values().remove(jsonCard);
 
@@ -120,7 +166,7 @@ class ScryfallCardFactory {
 			return;
 		}
 
-		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
 		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(jsonCard));
 		ScryfallSet set = sets.computeIfAbsent(jsonCard.set, s -> new ScryfallSet(jsonSets.get(s)));
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, f -> new ScryfallPrinting(set, card, jsonCard));
@@ -134,9 +180,9 @@ class ScryfallCardFactory {
 									BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
 									emi.lib.scryfall.api.Card jsonCard,
 									BiMap<String, ScryfallSet> sets,
-									BiMap<String, ScryfallCard> cards,
+									BiMap<UUID, ScryfallCard> cards,
 									BiMap<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
 
 		jsonCards.values().remove(jsonCard);
 
@@ -158,9 +204,9 @@ class ScryfallCardFactory {
 								   BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
 								   emi.lib.scryfall.api.Card jsonCard,
 								   BiMap<String, ScryfallSet> sets,
-								   BiMap<String, ScryfallCard> cards,
+								   BiMap<UUID, ScryfallCard> cards,
 								   BiMap<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
 
 		jsonCards.values().remove(jsonCard);
 
@@ -179,12 +225,12 @@ class ScryfallCardFactory {
 	}
 
 	private static void createTransform(Map<String, Set> jsonSets,
-										Map<UUID, emi.lib.scryfall.api.Card> jsonCards,
+										BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
 										emi.lib.scryfall.api.Card jsonCard,
 										Map<String, ScryfallSet> sets,
-										Map<String, ScryfallCard> cards,
+										Map<UUID, ScryfallCard> cards,
 										Map<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(jsonCard.name, ScryfallCard::new);
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
 
 		jsonCards.values().remove(jsonCard);
 
@@ -202,57 +248,78 @@ class ScryfallCardFactory {
 		printings.put(print.id(), print);
 	}
 
+	private static class MeldParts {
+		public final emi.lib.scryfall.api.Card back;
+		public final emi.lib.scryfall.api.Card active;
+		public final emi.lib.scryfall.api.Card passive;
+
+		public MeldParts(Map<UUID, emi.lib.scryfall.api.Card> jsonCards, emi.lib.scryfall.api.Card jsonCard) {
+			emi.lib.scryfall.api.Card backJson = jsonCard.allParts.stream()
+					.map(part -> jsonCards.get(part.id))
+					.filter(card -> card.collectorNumber.matches("^[0-9]+bs?$"))
+					.findAny()
+					.orElseThrow(AssertionError::new);
+
+			emi.lib.scryfall.api.Card frontJson1 = jsonCard.allParts.stream()
+					.map(part -> jsonCards.get(part.id))
+					.filter(card -> card != backJson)
+					.findAny()
+					.orElseThrow(AssertionError::new);
+
+			emi.lib.scryfall.api.Card frontJson2 = jsonCard.allParts.stream()
+					.map(part -> jsonCards.get(part.id))
+					.filter(card -> card != backJson && card != frontJson1)
+					.findAny()
+					.orElseThrow(AssertionError::new);
+
+			if (frontJson1.oracleText.contains("then meld them into")) {
+				this.active = frontJson1;
+				this.passive = frontJson2;
+			} else if (frontJson2.oracleText.contains("then meld them into")) {
+				this.active = frontJson2;
+				this.passive = frontJson1;
+			} else {
+				throw new Error("Couldn't determine active vs. passive meld pair!");
+			}
+
+			this.back = backJson;
+		}
+	}
+
 	private static void createMeld(Map<String, Set> jsonSets,
-								   Map<UUID, emi.lib.scryfall.api.Card> jsonCards,
+								   BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
 								   emi.lib.scryfall.api.Card jsonCard,
 								   Map<String, ScryfallSet> sets,
-								   Map<String, ScryfallCard> cards,
+								   Map<UUID, ScryfallCard> cards,
 								   Map<UUID, ScryfallPrinting> printings) {
+		MeldParts parts = new MeldParts(jsonCards, jsonCard);
 
-		emi.lib.scryfall.api.Card backJson = jsonCard.allParts.stream()
-				.map(part -> jsonCards.get(part.id))
-				.filter(card -> card.collectorNumber.matches("^[0-9]+bs?$"))
-				.findAny()
-				.orElseThrow(AssertionError::new);
+		jsonCards.values().remove(parts.back);
+		jsonCards.values().remove(parts.active);
+		jsonCards.values().remove(parts.passive);
 
-		emi.lib.scryfall.api.Card frontJson1 = jsonCard.allParts.stream()
-				.map(part -> jsonCards.get(part.id))
-				.filter(card -> card != backJson)
-				.findAny()
-				.orElseThrow(AssertionError::new);
+		ScryfallCard card1 = cards.computeIfAbsent(calculateCardUUID(parts, parts.active), c -> new ScryfallCard(parts.active.name));
+		ScryfallFace front1 = card1.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(parts.active));
+		ScryfallFace back = card1.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallFace(Card.Face.Kind.Transformed, parts.back));
 
-		emi.lib.scryfall.api.Card frontJson2 = jsonCard.allParts.stream()
-				.map(part -> jsonCards.get(part.id))
-				.filter(card -> card != backJson && card != frontJson1)
-				.findAny()
-				.orElseThrow(AssertionError::new);
-
-		jsonCards.values().remove(backJson);
-		jsonCards.values().remove(frontJson1);
-		jsonCards.values().remove(frontJson2);
-
-		ScryfallCard card1 = cards.computeIfAbsent(frontJson1.name, ScryfallCard::new);
-		ScryfallFace front1 = card1.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(frontJson1));
-		ScryfallFace back = card1.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallFace(Card.Face.Kind.Transformed, backJson));
-
-		ScryfallCard card2 = cards.computeIfAbsent(frontJson2.name, ScryfallCard::new);
-		ScryfallFace front2 = card2.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(frontJson2));
+		ScryfallCard card2 = cards.computeIfAbsent(calculateCardUUID(parts, parts.passive), c -> new ScryfallCard(parts.passive.name));
+		ScryfallFace front2 = card2.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(parts.passive));
 		ScryfallFace back2 = card2.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> back);
 
 		assert back == back2;
 
-		ScryfallSet set = sets.computeIfAbsent(frontJson1.set, s -> new ScryfallSet(jsonSets.get(s)));
+		ScryfallSet set = sets.computeIfAbsent(parts.active.set, s -> new ScryfallSet(jsonSets.get(s)));
 
-		assert sets.get(frontJson2.set) == set;
-		assert sets.get(backJson.set) == set;
+		assert sets.get(parts.passive.set) == set;
+		assert sets.get(parts.back.set) == set;
 
-		ScryfallPrinting print1 = card1.printings.computeIfAbsent(frontJson1.id, id -> new ScryfallPrinting(set, card1, frontJson1));
-		ScryfallPrintedFace frontPrint1 = print1.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print1, front1, frontJson1, null));
-		ScryfallPrintedFace backPrint = print1.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print1, back, backJson, null));
+		ScryfallPrinting print1 = card1.printings.computeIfAbsent(parts.active.id, id -> new ScryfallPrinting(set, card1, parts.active));
+		ScryfallPrintedFace frontPrint1 = print1.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print1, front1, parts.active, null));
+		ScryfallPrintedFace backPrint = print1.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print1, back, parts.back, null));
 
-		ScryfallPrinting print2 = card2.printings.computeIfAbsent(frontJson2.id, id -> new ScryfallPrinting(set, card2, frontJson2));
-		ScryfallPrintedFace frontPrint2 = print2.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print2, front2, frontJson2, null));
-		ScryfallPrintedFace backPrint2 = print2.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print2, back, backJson, null));
+		ScryfallPrinting print2 = card2.printings.computeIfAbsent(parts.passive.id, id -> new ScryfallPrinting(set, card2, parts.passive));
+		ScryfallPrintedFace frontPrint2 = print2.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print2, front2, parts.passive, null));
+		ScryfallPrintedFace backPrint2 = print2.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallPrintedFace(print2, back, parts.back, null));
 
 		set.printings.put(print1.id(), print1);
 		set.printings.put(print2.id(), print2);

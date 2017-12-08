@@ -99,7 +99,7 @@ class ScryfallPrinting implements Card.Printing {
 	public int variation() {
 		if (variation < 0) {
 			Iterator<String> cns = set.printings().stream()
-					.filter(print -> print.card() == this.card())
+					.filter(print -> print.card().name().equals(this.card().name()))
 					.map(Card.Printing::collectorNumber)
 					.sorted(COLLECTOR_NUMBER_COMPARATOR)
 					.iterator();
