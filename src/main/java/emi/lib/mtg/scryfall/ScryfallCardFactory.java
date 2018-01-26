@@ -30,6 +30,12 @@ class ScryfallCardFactory {
 					} else if ("B.F.M. (Big Furry Monster)".equals(jsonCard.name)) {
 						// eh
 						System.err.println("I can't tell halves of BFM apart. You're on your own with this one, sorry...");
+
+						// Hack...
+						if (!jsonCard.typeLine.startsWith("Creature")) {
+							jsonCard.typeLine = "Creature \u0097 " + jsonCard.typeLine;
+						}
+
 						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 						return;
 					} else if (jsonCard.allParts.size() == 2) {
