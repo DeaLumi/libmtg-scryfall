@@ -26,7 +26,18 @@ public abstract class ScryfallImageSource implements ImageSource {
 	}
 
 	private File file(Card.Printing.Face face) throws IOException {
-		File f = new File(new File(new File(PARENT, imageUri()), String.format("s%s", face.printing().set().code())), String.format("%s.jpg", face.printing().id().toString()));
+		File subdir = new File(new File(PARENT, imageUri()), String.format("s%s", face.printing().set().code()));
+
+		StringBuilder cname = new StringBuilder();
+		cname.append(face.printing().id().toString());
+
+		if (face.face().kind() != Card.Face.Kind.Front) {
+			cname.append('-').append(face.face().kind().name());
+		}
+
+		cname.append('.').append(extension());
+
+		File f = new File(subdir, cname.toString());
 
 		if (!f.getParentFile().exists() && !f.getParentFile().mkdirs()) {
 			throw new IOException("Couldn't make parent directory for set " + face.printing().set().code());
