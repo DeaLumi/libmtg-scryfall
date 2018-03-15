@@ -215,6 +215,7 @@ public class ScryfallDataSource implements DataSource {
 			jsonCards.put(card.id, card);
 		}
 		reader.endObject();
+		reader.close();
 
 		while (!jsonCards.isEmpty()) {
 			emi.lib.scryfall.api.Card jsonCard = jsonCards.values().iterator().next();
