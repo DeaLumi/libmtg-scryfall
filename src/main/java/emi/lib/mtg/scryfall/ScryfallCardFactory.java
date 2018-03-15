@@ -90,7 +90,8 @@ class ScryfallCardFactory {
 			case Leveler:
 			case Planar:
 			case Scheme:
-			case Vanguard: {
+			case Vanguard:
+			case Saga: {
 				createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 				return;
 			}
@@ -135,6 +136,7 @@ class ScryfallCardFactory {
 			case Planar:
 			case Scheme:
 			case Vanguard:
+			case Saga:
 				sb.append(jsonCard.name).append('\n').append(jsonCard.oracleText);
 				break;
 			case Token:
