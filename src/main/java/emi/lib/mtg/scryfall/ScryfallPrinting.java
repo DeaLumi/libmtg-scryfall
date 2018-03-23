@@ -49,7 +49,7 @@ class ScryfallPrinting implements Card.Printing {
 
 	private final ScryfallSet set;
 	private final ScryfallCard card;
-	private final emi.lib.scryfall.api.Card cardJson;
+	final emi.lib.scryfall.api.Card cardJson;
 
 	final EnumHashBiMap<Card.Face.Kind, ScryfallPrintedFace> faces;
 
@@ -66,17 +66,17 @@ class ScryfallPrinting implements Card.Printing {
 	}
 
 	@Override
-	public Card card() {
+	public ScryfallCard card() {
 		return card;
 	}
 
 	@Override
-	public Set<? extends Face> faces() {
+	public Set<ScryfallPrintedFace> faces() {
 		return faces.values();
 	}
 
 	@Override
-	public Face face(Card.Face.Kind kind) {
+	public ScryfallPrintedFace face(Card.Face.Kind kind) {
 		return faces.get(kind);
 	}
 
