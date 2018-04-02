@@ -4,13 +4,10 @@ import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.CardTypeLine;
 import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.characteristic.ManaCost;
+import emi.lib.mtg.characteristic.ManaSymbol;
 import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
-import emi.lib.mtg.characteristic.impl.BasicManaCost;
-import emi.lib.mtg.scryfall.Util;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Set;
+import java.util.*;
 
 import static emi.lib.mtg.scryfall.Util.or;
 import static emi.lib.mtg.scryfall.Util.orEmpty;
@@ -30,6 +27,8 @@ class ScryfallFace implements Card.Face {
 		this.kind = kind;
 		this.cardJson = cardJson;
 		this.faceJson = faceJson;
+
+		this.manaCost();
 	}
 
 	ScryfallFace(Kind kind, emi.lib.scryfall.api.Card cardJson) {
@@ -86,7 +85,41 @@ class ScryfallFace implements Card.Face {
 	@Override
 	public ManaCost manaCost() {
 		if (manaCost == null) {
-			manaCost = BasicManaCost.parse(or(faceJson != null ? faceJson.manaCost : cardJson.manaCost, ""));
+			final String source = or(faceJson != null ? faceJson.manaCost : cardJson.manaCost, "");
+
+			manaCost = new ManaCost() {
+				private final List<ManaSymbol> symbols;
+				private final double cmc;
+				private final Set<Color> color;
+				private final boolean varies;
+
+				{
+					symbols = Collections.unmodifiableList(ManaSymbol.symbolsIn(source));
+					color = Collections.unmodifiableSet(ManaCost.super.color());
+					varies = ManaCost.super.varies();
+					cmc = ManaCost.super.convertedCost();
+				}
+
+				@Override
+				public Collection<? extends ManaSymbol> symbols() {
+					return symbols;
+				}
+
+				@Override
+				public double convertedCost() {
+					return cmc;
+				}
+
+				@Override
+				public Set<Color> color() {
+					return color;
+				}
+
+				@Override
+				public boolean varies() {
+					return varies;
+				}
+			};
 		}
 
 		return this.manaCost;
