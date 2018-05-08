@@ -10,10 +10,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 @Service.Provider(ImageSource.class)
 @Service.Property.String(name="name", value="Scryfall")
@@ -49,23 +46,44 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private static ExecutorService downloader = Executors.newSingleThreadExecutor(r -> {
-		Thread th = Executors.defaultThreadFactory().newThread(r);
-		th.setDaemon(true);
-		return th;
-	});
+	private static class ImageDownloadTask {
+		public final URL url;
+		public final CompletableFuture<BufferedImage> image;
 
+		public ImageDownloadTask(URL url) {
+			this.url = url;
+			this.image = new CompletableFuture<>();
+		}
+	}
 	private static final long DOWNLOAD_DELAY = 150;
-	private Future<BufferedImage> openUrl(URL url) {
-		return downloader.submit(() -> {
-			try {
-				Thread.sleep(DOWNLOAD_DELAY);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
 
-			return ImageIO.read(url);
-		});
+	private static final LinkedBlockingDeque<ImageDownloadTask> downloadStack = new LinkedBlockingDeque<>();
+
+	private static final Thread downloadThread = new Thread(() -> {
+		while (!Thread.currentThread().isInterrupted()) {
+			try {
+				ImageDownloadTask task = downloadStack.take();
+				try {
+					task.image.complete(ImageIO.read(task.url));
+				} catch (IOException ioe) {
+					task.image.completeExceptionally(ioe);
+				}
+				Thread.sleep(DOWNLOAD_DELAY);
+			} catch (InterruptedException ie) {
+				break;
+			}
+		}
+	}, "Scryfall Image Download Thread");
+
+	static {
+		downloadThread.setDaemon(true);
+		downloadThread.start();
+	}
+
+	private Future<BufferedImage> openUrl(URL url) {
+		ImageDownloadTask task = new ImageDownloadTask(url);
+		downloadStack.push(task);
+		return task.image;
 	}
 
 	@Override
