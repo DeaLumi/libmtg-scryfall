@@ -264,9 +264,9 @@ class ScryfallCardFactory {
 		public MeldParts(Map<UUID, emi.lib.scryfall.api.Card> jsonCards, emi.lib.scryfall.api.Card jsonCard) {
 			emi.lib.scryfall.api.Card backJson = jsonCard.allParts.stream()
 					.map(part -> jsonCards.get(part.id))
-					.filter(card -> card.collectorNumber.matches("^[0-9]+bs?$"))
+					.filter(card -> card != null && card.collectorNumber != null && card.collectorNumber.matches("^[0-9]+bs?$"))
 					.findAny()
-					.orElseThrow(AssertionError::new);
+					.orElseThrow(() -> new AssertionError("Can't find back face for " + jsonCard.printedName + "/" + jsonCard.scryfallUri));
 
 			emi.lib.scryfall.api.Card frontJson1 = jsonCard.allParts.stream()
 					.map(part -> jsonCards.get(part.id))

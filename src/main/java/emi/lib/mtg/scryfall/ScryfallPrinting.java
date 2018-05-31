@@ -92,7 +92,7 @@ class ScryfallPrinting implements Card.Printing {
 
 	@Override
 	public Integer multiverseId() {
-		return cardJson.multiverseId;
+		return cardJson.multiverseIds == null || cardJson.multiverseIds.isEmpty() ? null : cardJson.multiverseIds.iterator().next();
 	}
 
 	@Override

@@ -112,7 +112,7 @@ public class ScryfallDataSource implements DataSource {
 		}
 		writer.endObject();
 
-		List<emi.lib.scryfall.api.Card> cards = api.cards();
+		List<emi.lib.scryfall.api.Card> cards = api.query("lang:en");
 
 		writer.name("printings");
 		writer.beginObject();
@@ -130,6 +130,11 @@ public class ScryfallDataSource implements DataSource {
 
 			// Null out some excess data here to save hard drive space.
 			card.legalities = null; // TODO: We might want to bring this back soon...
+			card.purchaseUris = null;
+			card.relatedUris = null;
+			card.printsSearchUri = null;
+			card.rulingsUri = null;
+			card.setSearchUri = null;
 
 			writer.name(card.id.toString());
 			Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
@@ -220,7 +225,13 @@ public class ScryfallDataSource implements DataSource {
 		while (!jsonCards.isEmpty()) {
 			emi.lib.scryfall.api.Card jsonCard = jsonCards.values().iterator().next();
 
-			ScryfallCardFactory.create(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+			try {
+				ScryfallCardFactory.create(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+			} catch (Exception | Error problem) {
+				problem.printStackTrace();
+				jsonCards.values().remove(jsonCard);
+				System.out.println("Unable to create libmtg card for " + jsonCard.printedName + " / " + jsonCard.name + " / " + jsonCard.uri.toString());
+			}
 		}
 	}
 
