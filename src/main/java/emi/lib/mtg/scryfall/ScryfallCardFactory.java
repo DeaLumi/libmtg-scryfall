@@ -46,6 +46,7 @@ class ScryfallCardFactory {
 							return;
 						} else if (part.uri.getPath().matches("/cards/t[a-z0-9]{3}/[0-9]+")) {
 							// This is just a Card/Token pair. Tokens aren't cards, so ignore them.
+							// Oh my fucking GOD. FOOD ARE NOT PARTS OF A CARD. CARDS YOU SEARCH FOR ARE NOT PARTS OF A CARD.
 							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 							return;
 						} else {
@@ -96,6 +97,11 @@ class ScryfallCardFactory {
 				return;
 			}
 
+			case Adventure: {
+				createAdventure(jsonSets, jsonCards, jsonCard, sets, cards, printings);
+				return;
+			}
+
 			case Token:
 			case DoubleFacedToken:
 			case Emblem: {
@@ -121,6 +127,7 @@ class ScryfallCardFactory {
 			case Split:
 			case Flip:
 			case Transform:
+			case Adventure:
 				sb.append(jsonCard.cardFaces.get(0).name).append('\n');
 				sb.append(jsonCard.cardFaces.get(0).oracleText).append('\n');
 				sb.append("\n//\n\n");
@@ -334,5 +341,32 @@ class ScryfallCardFactory {
 
 		printings.put(print1.id(), print1);
 		printings.put(print2.id(), print2);
+	}
+
+	private static void createAdventure(Map<String, Set> jsonSets,
+										BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
+										emi.lib.scryfall.api.Card jsonCard,
+										Map<String, ScryfallSet> sets,
+										Map<UUID, ScryfallCard> cards,
+										Map<UUID, ScryfallPrinting> printings) {
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
+
+		jsonCards.values().remove(jsonCard);
+
+		ScryfallSet set = sets.computeIfAbsent(jsonCard.set, setCode -> new ScryfallSet(jsonSets.get(setCode)));
+
+		emi.lib.scryfall.api.Card.Face jsonFront = jsonCard.cardFaces.stream().filter(f -> f.typeLine.startsWith("Creature")).findAny().orElseThrow(() -> new AssertionError("Couldn't find main part of adventure!"));
+		emi.lib.scryfall.api.Card.Face jsonAdventure = jsonCard.cardFaces.stream().filter(f -> f.typeLine.endsWith("Adventure")).findAny().orElseThrow(() -> new AssertionError("Couldn't find adventure part of adventure!"));
+
+		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(f, jsonCard, jsonFront));
+		ScryfallFace adventure = card.faces.computeIfAbsent(Card.Face.Kind.Other, f -> new ScryfallFace(f, jsonCard, jsonAdventure));
+
+		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+
+		ScryfallPrintedFace leftPrint = print.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallPrintedFace(print, front, jsonCard, jsonFront));
+		ScryfallPrintedFace rightPrint = print.faces.computeIfAbsent(Card.Face.Kind.Other, f -> new ScryfallPrintedFace(print, adventure, jsonCard, jsonAdventure));
+
+		set.printings.put(print.id(), print);
+		printings.put(print.id(), print);
 	}
 }

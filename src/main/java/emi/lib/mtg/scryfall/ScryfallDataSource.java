@@ -112,7 +112,7 @@ public class ScryfallDataSource implements DataSource {
 		}
 		writer.endObject();
 
-		List<emi.lib.scryfall.api.Card> cards = api.query("lang:en");
+		List<emi.lib.scryfall.api.Card> cards = api.cardsBulk();
 
 		writer.name("printings");
 		writer.beginObject();
@@ -120,7 +120,11 @@ public class ScryfallDataSource implements DataSource {
 		System.out.flush();
 		int statusCounter = 0;
 		for (emi.lib.scryfall.api.Card card : cards) {
-			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken) {
+			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken || card.layout == CardLayout.Emblem) {
+				continue;
+			}
+
+			if (card.layout == CardLayout.ArtSeries) {
 				continue;
 			}
 
@@ -135,6 +139,14 @@ public class ScryfallDataSource implements DataSource {
 			card.printsSearchUri = null;
 			card.rulingsUri = null;
 			card.setSearchUri = null;
+
+			if (card.allParts != null) {
+				card.allParts.removeIf(p -> "token".equals(p.component) || "combo_piece".equals(p.component));
+
+				if (card.allParts.isEmpty()) {
+					card.allParts = null;
+				}
+			}
 
 			writer.name(card.id.toString());
 			Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
@@ -188,7 +200,6 @@ public class ScryfallDataSource implements DataSource {
 		BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards = HashBiMap.create();
 
 		JsonReader reader = Scryfall.GSON.newJsonReader(new InputStreamReader(Files.newInputStream(DATA_FILE), StandardCharsets.UTF_8));
-
 		reader.beginObject();
 
 		expect(reader.nextName(), "sets");
@@ -219,6 +230,8 @@ public class ScryfallDataSource implements DataSource {
 
 			jsonCards.put(card.id, card);
 		}
+		reader.endObject();
+
 		reader.endObject();
 		reader.close();
 
