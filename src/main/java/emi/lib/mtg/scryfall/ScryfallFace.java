@@ -55,8 +55,8 @@ class ScryfallFace implements Card.Face {
 			case Left:
 			case Right:
 				// Have to check for faceJson here; meld backsides are still separate Card objects.
-				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null ? faceJson.colors : cardJson.colors)));
-				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null ? faceJson.colorIndicator : cardJson.colorIndicator)));
+				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors)));
+				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator)));
 				break;
 
 			case Other:
