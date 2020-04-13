@@ -181,7 +181,7 @@ class ScryfallCardFactory {
 			return;
 		}
 
-		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(jsonCard));
 		ScryfallSet set = sets.computeIfAbsent(jsonCard.set, s -> new ScryfallSet(jsonSets.get(s)));
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, f -> new ScryfallPrinting(set, card, jsonCard));
@@ -197,7 +197,7 @@ class ScryfallCardFactory {
 									BiMap<String, ScryfallSet> sets,
 									BiMap<UUID, ScryfallCard> cards,
 									BiMap<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 
 		jsonCards.values().remove(jsonCard);
 
@@ -221,7 +221,7 @@ class ScryfallCardFactory {
 								   BiMap<String, ScryfallSet> sets,
 								   BiMap<UUID, ScryfallCard> cards,
 								   BiMap<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 
 		jsonCards.values().remove(jsonCard);
 
@@ -245,7 +245,7 @@ class ScryfallCardFactory {
 										Map<String, ScryfallSet> sets,
 										Map<UUID, ScryfallCard> cards,
 										Map<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 
 		jsonCards.values().remove(jsonCard);
 
@@ -313,11 +313,11 @@ class ScryfallCardFactory {
 		jsonCards.values().remove(parts.active);
 		jsonCards.values().remove(parts.passive);
 
-		ScryfallCard card1 = cards.computeIfAbsent(calculateCardUUID(parts, parts.active), c -> new ScryfallCard(parts.active.name));
+		ScryfallCard card1 = cards.computeIfAbsent(calculateCardUUID(parts, parts.active), c -> new ScryfallCard(parts.active));
 		ScryfallFace front1 = card1.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(parts.active));
 		ScryfallFace back = card1.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> new ScryfallFace(Card.Face.Kind.Transformed, parts.back));
 
-		ScryfallCard card2 = cards.computeIfAbsent(calculateCardUUID(parts, parts.passive), c -> new ScryfallCard(parts.passive.name));
+		ScryfallCard card2 = cards.computeIfAbsent(calculateCardUUID(parts, parts.passive), c -> new ScryfallCard(parts.passive));
 		ScryfallFace front2 = card2.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(parts.passive));
 		ScryfallFace back2 = card2.faces.computeIfAbsent(Card.Face.Kind.Transformed, f -> back);
 
@@ -349,7 +349,7 @@ class ScryfallCardFactory {
 										Map<String, ScryfallSet> sets,
 										Map<UUID, ScryfallCard> cards,
 										Map<UUID, ScryfallPrinting> printings) {
-		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard.name));
+		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 
 		jsonCards.values().remove(jsonCard);
 

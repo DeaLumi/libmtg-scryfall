@@ -2,6 +2,7 @@ package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -10,6 +11,7 @@ import emi.lib.mtg.DataSource;
 import emi.lib.scryfall.Scryfall;
 import emi.lib.scryfall.api.Catalog;
 import emi.lib.scryfall.api.enums.CardLayout;
+import emi.lib.scryfall.api.enums.GameFormat;
 import emi.lib.scryfall.api.enums.SetType;
 
 import java.io.IOException;
@@ -29,6 +31,11 @@ public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
 
 	private static final Path DATA_FILE = Paths.get("data", "scryfall", "data.json");
+
+	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
+			GameFormat.Duel,
+			GameFormat.OldSchool,
+			GameFormat.Unrecognized);
 
 	private static void expect(Object input, Object expected) throws IOException {
 		if (!Objects.equals(input, expected)) {
@@ -133,7 +140,7 @@ public class ScryfallDataSource implements DataSource {
 			}
 
 			// Null out some excess data here to save hard drive space.
-			card.legalities = null; // TODO: We might want to bring this back soon...
+			DROPPED_FORMATS.forEach(card.legalities::remove);
 			card.purchaseUris = null;
 			card.relatedUris = null;
 			card.printsSearchUri = null;
