@@ -39,6 +39,11 @@ class ScryfallFace implements Card.Face {
 		this(Card.Face.Kind.Front, cardJson);
 	}
 
+	@Override
+	public String toString() {
+		return name();
+	}
+
 	private void initColor() {
 		if (color != null && colorIndicator != null && colorIdentity != null) {
 			return;
