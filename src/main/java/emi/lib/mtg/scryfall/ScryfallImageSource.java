@@ -1,6 +1,5 @@
 package emi.lib.mtg.scryfall;
 
-import emi.lib.Service;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.ImageSource;
 import emi.lib.mtg.img.MtgAwtImageUtils;
@@ -12,10 +11,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.*;
 
-@Service.Provider(ImageSource.class)
-@Service.Property.String(name="name", value="Scryfall")
-@Service.Property.Number(name="priority", value=0.5)
 public class ScryfallImageSource implements ImageSource {
+
+	@Override
+	public int priority() {
+		return 50;
+	}
 
 	private URL url(emi.lib.scryfall.api.Card cardJson, emi.lib.scryfall.api.Card.Face faceJson, String imageUri) {
 		if (cardJson.layout == CardLayout.Transform) {
