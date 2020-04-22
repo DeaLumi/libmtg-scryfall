@@ -131,6 +131,11 @@ class ScryfallFace implements Card.Face {
 				public boolean varies() {
 					return varies;
 				}
+
+				@Override
+				public String toString() {
+					return symbols.stream().sorted().map(ManaSymbol::toString).collect(Collectors.joining());
+				}
 			};
 		}
 
