@@ -3,6 +3,7 @@ package emi.lib.mtg.scryfall;
 import com.google.common.collect.EnumHashBiMap;
 import com.google.common.collect.HashBiMap;
 import emi.lib.mtg.Card;
+import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.game.Format;
 import emi.lib.scryfall.api.enums.GameFormat;
 import emi.lib.scryfall.api.enums.Legality;
@@ -15,12 +16,14 @@ class ScryfallCard implements Card {
 	final EnumHashBiMap<Face.Kind, ScryfallFace> faces;
 	final HashBiMap<UUID, ScryfallPrinting> printings;
 	final EnumMap<Format, Legality> legalities;
+	final Set<Color> colorIdentity;
 
 	ScryfallCard(emi.lib.scryfall.api.Card jsonCard) {
 		this.name = jsonCard.name;
 		this.faces = EnumHashBiMap.create(Face.Kind.class);
 		this.printings = HashBiMap.create();
 
+		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
 		this.legalities = new EnumMap<>(Format.class);
 		if (jsonCard.legalities != null && !jsonCard.legalities.isEmpty()) {
 			for (Map.Entry<GameFormat, emi.lib.scryfall.api.enums.Legality> entry : jsonCard.legalities.entrySet()) {
@@ -63,5 +66,10 @@ class ScryfallCard implements Card {
 	@Override
 	public Legality legality(Format format) {
 		return this.legalities.getOrDefault(format, Legality.Unknown);
+	}
+
+	@Override
+	public Set<Color> colorIdentity() {
+		return this.colorIdentity;
 	}
 }

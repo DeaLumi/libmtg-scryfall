@@ -8,6 +8,7 @@ import emi.lib.mtg.characteristic.ManaSymbol;
 import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static emi.lib.mtg.scryfall.Util.or;
 import static emi.lib.mtg.scryfall.Util.orEmpty;
@@ -49,11 +50,15 @@ class ScryfallFace implements Card.Face {
 			return;
 		}
 
+		EnumSet<Color> colorIdentity = EnumSet.noneOf(Color.class);
 		switch (this.kind()) {
 			case Front:
 			case Flipped:
 				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colors)));
 				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colorIndicator)));
+				ManaSymbol.symbolsIn(cardJson.oracleText).stream()
+						.map(ManaSymbol::color)
+						.forEach(colorIdentity::addAll);
 				break;
 
 			case Transformed:
@@ -62,6 +67,9 @@ class ScryfallFace implements Card.Face {
 				// Have to check for faceJson here; meld backsides are still separate Card objects.
 				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors)));
 				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator)));
+				ManaSymbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText).stream()
+						.map(ManaSymbol::color)
+						.forEach(colorIdentity::addAll);
 				break;
 
 			case Other:
@@ -71,10 +79,9 @@ class ScryfallFace implements Card.Face {
 				break;
 		}
 
-		EnumSet<Color> colorIdentity = EnumSet.noneOf(Color.class);
 		colorIdentity.addAll(color);
 		colorIdentity.addAll(colorIndicator);
-		this.colorIdentity = colorIdentity;
+		this.colorIdentity = Collections.unmodifiableSet(colorIdentity);
 	}
 
 	@Override
@@ -145,6 +152,12 @@ class ScryfallFace implements Card.Face {
 	public Set<Color> color() {
 		initColor();
 		return color;
+	}
+
+	@Override
+	public Set<Color> colorIdentity() {
+		initColor();
+		return colorIdentity;
 	}
 
 	@Override
