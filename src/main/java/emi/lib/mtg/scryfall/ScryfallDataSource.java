@@ -2,7 +2,6 @@ package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -47,18 +46,15 @@ public class ScryfallDataSource implements DataSource {
 	private final BiMap<UUID, ScryfallCard> cards;
 	private final BiMap<String, ScryfallSet> sets;
 
-	public ScryfallDataSource() throws IOException {
+	public ScryfallDataSource() {
 		this.cards = HashBiMap.create();
 		this.printings = HashBiMap.create();
 		this.sets = HashBiMap.create();
+	}
 
-		try {
-			loadData();
-		} catch (IOException ioe) {
-			System.err.println("Scryfall data source couldn't load data file.");
-			ioe.printStackTrace();
-			System.err.println("We'll continue with no cards...");
-		}
+	@Override
+	public String toString() {
+		return "Scryfall";
 	}
 
 	@Override
@@ -181,8 +177,6 @@ public class ScryfallDataSource implements DataSource {
 		System.gc();
 
 		System.out.println("Done! Next update in one week~");
-
-		loadData();
 
 		return true;
 	}
