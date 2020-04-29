@@ -2,7 +2,6 @@ package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.characteristic.CardRarity;
 import emi.lib.mtg.characteristic.Color;
-import emi.lib.scryfall.api.enums.Rarity;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -25,14 +24,14 @@ class Util {
 		return in != null ? in : Collections.emptySet();
 	}
 
-	static EnumSet<Color> mapColor(Set<emi.lib.scryfall.api.enums.Color> apiColors) {
+	static EnumSet<Color> mapColor(Set<emi.lib.mtg.scryfall.api.enums.Color> apiColors) {
 		EnumSet<Color> out = EnumSet.noneOf(Color.class);
 
 		if (apiColors == null) {
 			return out;
 		}
 
-		for (emi.lib.scryfall.api.enums.Color color : apiColors) {
+		for (emi.lib.mtg.scryfall.api.enums.Color color : apiColors) {
 			switch (color) {
 				case White:
 					out.add(Color.WHITE);
@@ -58,7 +57,7 @@ class Util {
 		return out;
 	}
 
-	static CardRarity mapRarity(emi.lib.scryfall.api.Card card) {
+	static CardRarity mapRarity(emi.lib.mtg.scryfall.api.Card card) {
 		switch (card.rarity) {
 			case Common:
 				if (card.typeLine != null && card.typeLine.contains("Basic Land")) {

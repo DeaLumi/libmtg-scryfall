@@ -3,7 +3,7 @@ package emi.lib.mtg.scryfall;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.ImageSource;
 import emi.lib.mtg.img.MtgAwtImageUtils;
-import emi.lib.scryfall.api.enums.CardLayout;
+import emi.lib.mtg.scryfall.api.enums.CardLayout;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -18,7 +18,7 @@ public class ScryfallImageSource implements ImageSource {
 		return 50;
 	}
 
-	private URL url(emi.lib.scryfall.api.Card cardJson, emi.lib.scryfall.api.Card.Face faceJson, String imageUri) {
+	private URL url(emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson, String imageUri) {
 		if (cardJson.layout == CardLayout.Transform) {
 			assert faceJson != null && faceJson.imageUris != null;
 			return faceJson.imageUris.get(imageUri);

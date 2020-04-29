@@ -7,11 +7,11 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.DataSource;
-import emi.lib.scryfall.Scryfall;
-import emi.lib.scryfall.api.Catalog;
-import emi.lib.scryfall.api.enums.CardLayout;
-import emi.lib.scryfall.api.enums.GameFormat;
-import emi.lib.scryfall.api.enums.SetType;
+import emi.lib.mtg.scryfall.api.ScryfallApi;
+import emi.lib.mtg.scryfall.api.Catalog;
+import emi.lib.mtg.scryfall.api.enums.CardLayout;
+import emi.lib.mtg.scryfall.api.enums.GameFormat;
+import emi.lib.mtg.scryfall.api.enums.SetType;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -89,18 +89,18 @@ public class ScryfallDataSource implements DataSource {
 		}
 
 		System.out.println("Sets file needs update. Please wait...");
-		Scryfall api = new Scryfall();
-		List<emi.lib.scryfall.api.Set> sets = api.sets();
+		ScryfallApi api = new ScryfallApi();
+		List<emi.lib.mtg.scryfall.api.Set> sets = api.sets();
 		Set<String> droppedSets = new HashSet<>();
 
 		Path tmp = Files.createTempFile("scryfall-data", ".json");
-		JsonWriter writer = Scryfall.GSON.newJsonWriter(new OutputStreamWriter(Files.newOutputStream(tmp), StandardCharsets.UTF_8));
+		JsonWriter writer = ScryfallApi.GSON.newJsonWriter(new OutputStreamWriter(Files.newOutputStream(tmp), StandardCharsets.UTF_8));
 
 		writer.beginObject();
 
 		writer.name("sets");
 		writer.beginObject();
-		for (emi.lib.scryfall.api.Set set : sets) {
+		for (emi.lib.mtg.scryfall.api.Set set : sets) {
 			System.out.print(" Set: " + set.code + " / " + set.name + "... ");
 
 			if (set.setType == SetType.Token) {
@@ -110,19 +110,19 @@ public class ScryfallDataSource implements DataSource {
 			}
 
 			writer.name(set.code);
-			Scryfall.GSON.toJson(set, emi.lib.scryfall.api.Set.class, writer);
+			ScryfallApi.GSON.toJson(set, emi.lib.mtg.scryfall.api.Set.class, writer);
 			System.out.println("done!");
 		}
 		writer.endObject();
 
-		List<emi.lib.scryfall.api.Card> cards = api.cardsBulk();
+		List<emi.lib.mtg.scryfall.api.Card> cards = api.cardsBulk();
 
 		writer.name("printings");
 		writer.beginObject();
 		System.out.print("Cards:     ");
 		System.out.flush();
 		int statusCounter = 0;
-		for (emi.lib.scryfall.api.Card card : cards) {
+		for (emi.lib.mtg.scryfall.api.Card card : cards) {
 			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken || card.layout == CardLayout.Emblem) {
 				continue;
 			}
@@ -152,7 +152,7 @@ public class ScryfallDataSource implements DataSource {
 			}
 
 			writer.name(card.id.toString());
-			Scryfall.GSON.toJson(card, emi.lib.scryfall.api.Card.class, writer);
+			ScryfallApi.GSON.toJson(card, emi.lib.mtg.scryfall.api.Card.class, writer);
 
 			++statusCounter;
 			double status = (double) statusCounter / (double) cards.size();
@@ -192,22 +192,23 @@ public class ScryfallDataSource implements DataSource {
 		}
 	}
 
-	private void loadData() throws IOException {
+	@Override
+	public void loadData() throws IOException {
 		this.cards.clear();
 		this.printings.clear();
 		this.sets.clear();
 
-		BiMap<String, emi.lib.scryfall.api.Set> jsonSets = HashBiMap.create();
-		BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards = HashBiMap.create();
+		BiMap<String, emi.lib.mtg.scryfall.api.Set> jsonSets = HashBiMap.create();
+		BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards = HashBiMap.create();
 
-		JsonReader reader = Scryfall.GSON.newJsonReader(new InputStreamReader(Files.newInputStream(DATA_FILE), StandardCharsets.UTF_8));
+		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(Files.newInputStream(DATA_FILE), StandardCharsets.UTF_8));
 		reader.beginObject();
 
 		expect(reader.nextName(), "sets");
 		reader.beginObject();
 		while (reader.peek() == JsonToken.NAME) {
 			String code = reader.nextName();
-			emi.lib.scryfall.api.Set set = Scryfall.GSON.fromJson(reader, emi.lib.scryfall.api.Set.class);
+			emi.lib.mtg.scryfall.api.Set set = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Set.class);
 			expect(code, set.code);
 
 			if (set.setType == SetType.Token) {
@@ -222,7 +223,7 @@ public class ScryfallDataSource implements DataSource {
 		reader.beginObject();
 		while (reader.peek() == JsonToken.NAME) {
 			String id = reader.nextName();
-			emi.lib.scryfall.api.Card card = Scryfall.GSON.fromJson(reader, emi.lib.scryfall.api.Card.class);
+			emi.lib.mtg.scryfall.api.Card card = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Card.class);
 			expect(id, card.id.toString());
 
 			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken) {
@@ -237,7 +238,7 @@ public class ScryfallDataSource implements DataSource {
 		reader.close();
 
 		while (!jsonCards.isEmpty()) {
-			emi.lib.scryfall.api.Card jsonCard = jsonCards.values().iterator().next();
+			emi.lib.mtg.scryfall.api.Card jsonCard = jsonCards.values().iterator().next();
 
 			try {
 				ScryfallCardFactory.create(jsonSets, jsonCards, jsonCard, sets, cards, printings);
@@ -265,7 +266,7 @@ public class ScryfallDataSource implements DataSource {
 
 		System.in.read();
 
-		Scryfall api = new Scryfall();
+		ScryfallApi api = new ScryfallApi();
 		Catalog cardNames = api.requestJson(new URL("https://api.scryfall.com/catalog/card-names"), Catalog.class);
 		System.out.println(String.format("%d cards", cardNames.data.size()));
 

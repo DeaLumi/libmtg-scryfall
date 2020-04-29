@@ -16,15 +16,15 @@ import static emi.lib.mtg.scryfall.Util.orEmpty;
 class ScryfallFace implements Card.Face {
 
 	private final Kind kind;
-	private final emi.lib.scryfall.api.Card cardJson;
-	private final emi.lib.scryfall.api.Card.Face faceJson;
+	private final emi.lib.mtg.scryfall.api.Card cardJson;
+	private final emi.lib.mtg.scryfall.api.Card.Face faceJson;
 
 	private ManaCost manaCost;
 	private CardTypeLine typeLine;
 
 	private Set<Color> color, colorIndicator, colorIdentity;
 
-	ScryfallFace(Kind kind, emi.lib.scryfall.api.Card cardJson, emi.lib.scryfall.api.Card.Face faceJson) {
+	ScryfallFace(Kind kind, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
 		this.kind = kind;
 		this.cardJson = cardJson;
 		this.faceJson = faceJson;
@@ -32,11 +32,11 @@ class ScryfallFace implements Card.Face {
 		this.manaCost();
 	}
 
-	ScryfallFace(Kind kind, emi.lib.scryfall.api.Card cardJson) {
+	ScryfallFace(Kind kind, emi.lib.mtg.scryfall.api.Card cardJson) {
 		this(kind, cardJson, null);
 	}
 
-	ScryfallFace(emi.lib.scryfall.api.Card cardJson) {
+	ScryfallFace(emi.lib.mtg.scryfall.api.Card cardJson) {
 		this(Card.Face.Kind.Front, cardJson);
 	}
 

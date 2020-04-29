@@ -2,7 +2,7 @@ package emi.lib.mtg.scryfall;
 
 import com.google.common.collect.BiMap;
 import emi.lib.mtg.Card;
-import emi.lib.scryfall.api.Set;
+import emi.lib.mtg.scryfall.api.Set;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -10,8 +10,8 @@ import java.util.UUID;
 
 class ScryfallCardFactory {
 	static void create(BiMap<String, Set> jsonSets,
-					   BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-					   emi.lib.scryfall.api.Card jsonCard,
+					   BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+					   emi.lib.mtg.scryfall.api.Card jsonCard,
 					   BiMap<String, ScryfallSet> sets,
 					   BiMap<UUID, ScryfallCard> cards,
 					   BiMap<UUID, ScryfallPrinting> printings) {
@@ -39,7 +39,7 @@ class ScryfallCardFactory {
 						createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 						return;
 					} else if (jsonCard.allParts.size() == 2) {
-						emi.lib.scryfall.api.Card.Part part = jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().orElse(null);
+						emi.lib.mtg.scryfall.api.Card.Part part = jsonCard.allParts.stream().filter(p -> !jsonCard.name.equals(p.name)).findAny().orElse(null);
 						if (part == null) {
 							System.err.println("Eff you Unstable! (" + jsonCard.name + ")");
 							createSimple(jsonSets, jsonCards, jsonCard, sets, cards, printings);
@@ -118,7 +118,7 @@ class ScryfallCardFactory {
 		jsonCards.values().remove(jsonCard);
 	}
 
-	private static UUID calculateCardUUID(BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards, emi.lib.scryfall.api.Card jsonCard) {
+	private static UUID calculateCardUUID(BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards, emi.lib.mtg.scryfall.api.Card jsonCard) {
 		StringBuilder sb = new StringBuilder();
 		switch (jsonCard.layout) {
 			case Normal:
@@ -157,7 +157,7 @@ class ScryfallCardFactory {
 		return UUID.nameUUIDFromBytes(sb.toString().getBytes(StandardCharsets.UTF_8));
 	}
 
-	private static UUID calculateCardUUID(MeldParts parts, emi.lib.scryfall.api.Card front) {
+	private static UUID calculateCardUUID(MeldParts parts, emi.lib.mtg.scryfall.api.Card front) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(front.name).append('\n').append(front.oracleText).append('\n');
 		sb.append("\n//\n\n");
@@ -166,8 +166,8 @@ class ScryfallCardFactory {
 	}
 
 	private static void createSimple(BiMap<String, Set> jsonSets,
-									 BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-									 emi.lib.scryfall.api.Card jsonCard,
+									 BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+									 emi.lib.mtg.scryfall.api.Card jsonCard,
 									 BiMap<String, ScryfallSet> sets,
 									 BiMap<UUID, ScryfallCard> cards,
 									 BiMap<UUID, ScryfallPrinting> printings) {
@@ -192,8 +192,8 @@ class ScryfallCardFactory {
 	}
 
 	private static void createSplit(BiMap<String, Set> jsonSets,
-									BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-									emi.lib.scryfall.api.Card jsonCard,
+									BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+									emi.lib.mtg.scryfall.api.Card jsonCard,
 									BiMap<String, ScryfallSet> sets,
 									BiMap<UUID, ScryfallCard> cards,
 									BiMap<UUID, ScryfallPrinting> printings) {
@@ -216,8 +216,8 @@ class ScryfallCardFactory {
 	}
 
 	private static void createFlip(BiMap<String, Set> jsonSets,
-								   BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-								   emi.lib.scryfall.api.Card jsonCard,
+								   BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+								   emi.lib.mtg.scryfall.api.Card jsonCard,
 								   BiMap<String, ScryfallSet> sets,
 								   BiMap<UUID, ScryfallCard> cards,
 								   BiMap<UUID, ScryfallPrinting> printings) {
@@ -240,8 +240,8 @@ class ScryfallCardFactory {
 	}
 
 	private static void createTransform(Map<String, Set> jsonSets,
-										BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-										emi.lib.scryfall.api.Card jsonCard,
+										BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+										emi.lib.mtg.scryfall.api.Card jsonCard,
 										Map<String, ScryfallSet> sets,
 										Map<UUID, ScryfallCard> cards,
 										Map<UUID, ScryfallPrinting> printings) {
@@ -264,24 +264,24 @@ class ScryfallCardFactory {
 	}
 
 	private static class MeldParts {
-		public final emi.lib.scryfall.api.Card back;
-		public final emi.lib.scryfall.api.Card active;
-		public final emi.lib.scryfall.api.Card passive;
+		public final emi.lib.mtg.scryfall.api.Card back;
+		public final emi.lib.mtg.scryfall.api.Card active;
+		public final emi.lib.mtg.scryfall.api.Card passive;
 
-		public MeldParts(Map<UUID, emi.lib.scryfall.api.Card> jsonCards, emi.lib.scryfall.api.Card jsonCard) {
-			emi.lib.scryfall.api.Card backJson = jsonCard.allParts.stream()
+		public MeldParts(Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards, emi.lib.mtg.scryfall.api.Card jsonCard) {
+			emi.lib.mtg.scryfall.api.Card backJson = jsonCard.allParts.stream()
 					.map(part -> jsonCards.get(part.id))
 					.filter(card -> card != null && card.collectorNumber != null && card.collectorNumber.matches("^[0-9]+bs?$"))
 					.findAny()
 					.orElseThrow(() -> new AssertionError("Can't find back face for " + jsonCard.printedName + "/" + jsonCard.scryfallUri));
 
-			emi.lib.scryfall.api.Card frontJson1 = jsonCard.allParts.stream()
+			emi.lib.mtg.scryfall.api.Card frontJson1 = jsonCard.allParts.stream()
 					.map(part -> jsonCards.get(part.id))
 					.filter(card -> card != backJson)
 					.findAny()
 					.orElseThrow(AssertionError::new);
 
-			emi.lib.scryfall.api.Card frontJson2 = jsonCard.allParts.stream()
+			emi.lib.mtg.scryfall.api.Card frontJson2 = jsonCard.allParts.stream()
 					.map(part -> jsonCards.get(part.id))
 					.filter(card -> card != backJson && card != frontJson1)
 					.findAny()
@@ -302,8 +302,8 @@ class ScryfallCardFactory {
 	}
 
 	private static void createMeld(Map<String, Set> jsonSets,
-								   BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-								   emi.lib.scryfall.api.Card jsonCard,
+								   BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+								   emi.lib.mtg.scryfall.api.Card jsonCard,
 								   Map<String, ScryfallSet> sets,
 								   Map<UUID, ScryfallCard> cards,
 								   Map<UUID, ScryfallPrinting> printings) {
@@ -344,8 +344,8 @@ class ScryfallCardFactory {
 	}
 
 	private static void createAdventure(Map<String, Set> jsonSets,
-										BiMap<UUID, emi.lib.scryfall.api.Card> jsonCards,
-										emi.lib.scryfall.api.Card jsonCard,
+										BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+										emi.lib.mtg.scryfall.api.Card jsonCard,
 										Map<String, ScryfallSet> sets,
 										Map<UUID, ScryfallCard> cards,
 										Map<UUID, ScryfallPrinting> printings) {
@@ -355,8 +355,8 @@ class ScryfallCardFactory {
 
 		ScryfallSet set = sets.computeIfAbsent(jsonCard.set, setCode -> new ScryfallSet(jsonSets.get(setCode)));
 
-		emi.lib.scryfall.api.Card.Face jsonFront = jsonCard.cardFaces.stream().filter(f -> f.typeLine.startsWith("Creature")).findAny().orElseThrow(() -> new AssertionError("Couldn't find main part of adventure!"));
-		emi.lib.scryfall.api.Card.Face jsonAdventure = jsonCard.cardFaces.stream().filter(f -> f.typeLine.endsWith("Adventure")).findAny().orElseThrow(() -> new AssertionError("Couldn't find adventure part of adventure!"));
+		emi.lib.mtg.scryfall.api.Card.Face jsonFront = jsonCard.cardFaces.stream().filter(f -> f.typeLine.startsWith("Creature")).findAny().orElseThrow(() -> new AssertionError("Couldn't find main part of adventure!"));
+		emi.lib.mtg.scryfall.api.Card.Face jsonAdventure = jsonCard.cardFaces.stream().filter(f -> f.typeLine.endsWith("Adventure")).findAny().orElseThrow(() -> new AssertionError("Couldn't find adventure part of adventure!"));
 
 		ScryfallFace front = card.faces.computeIfAbsent(Card.Face.Kind.Front, f -> new ScryfallFace(f, jsonCard, jsonFront));
 		ScryfallFace adventure = card.faces.computeIfAbsent(Card.Face.Kind.Other, f -> new ScryfallFace(f, jsonCard, jsonAdventure));

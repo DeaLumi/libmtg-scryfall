@@ -8,11 +8,11 @@ import java.util.UUID;
 
 class ScryfallSet implements Set {
 
-	private final emi.lib.scryfall.api.Set setJson;
+	private final emi.lib.mtg.scryfall.api.Set setJson;
 
 	final HashBiMap<UUID, ScryfallPrinting> printings;
 
-	ScryfallSet(emi.lib.scryfall.api.Set setJson) {
+	ScryfallSet(emi.lib.mtg.scryfall.api.Set setJson) {
 		this.setJson = setJson;
 		this.printings = HashBiMap.create();
 	}

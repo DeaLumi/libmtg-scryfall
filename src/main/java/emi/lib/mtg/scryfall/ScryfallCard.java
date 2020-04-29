@@ -5,8 +5,8 @@ import com.google.common.collect.HashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.game.Format;
-import emi.lib.scryfall.api.enums.GameFormat;
-import emi.lib.scryfall.api.enums.Legality;
+import emi.lib.mtg.scryfall.api.enums.GameFormat;
+import emi.lib.mtg.scryfall.api.enums.Legality;
 
 import java.util.*;
 
@@ -18,7 +18,7 @@ class ScryfallCard implements Card {
 	final EnumMap<Format, Legality> legalities;
 	final Set<Color> colorIdentity;
 
-	ScryfallCard(emi.lib.scryfall.api.Card jsonCard) {
+	ScryfallCard(emi.lib.mtg.scryfall.api.Card jsonCard) {
 		this.name = jsonCard.name;
 		this.faces = EnumHashBiMap.create(Face.Kind.class);
 		this.printings = HashBiMap.create();
@@ -26,7 +26,7 @@ class ScryfallCard implements Card {
 		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
 		this.legalities = new EnumMap<>(Format.class);
 		if (jsonCard.legalities != null && !jsonCard.legalities.isEmpty()) {
-			for (Map.Entry<GameFormat, emi.lib.scryfall.api.enums.Legality> entry : jsonCard.legalities.entrySet()) {
+			for (Map.Entry<GameFormat, emi.lib.mtg.scryfall.api.enums.Legality> entry : jsonCard.legalities.entrySet()) {
 				try {
 					Format libFormat = Format.valueOf(entry.getKey().name());
 					Legality libLegality = Legality.valueOf(entry.getValue().name());

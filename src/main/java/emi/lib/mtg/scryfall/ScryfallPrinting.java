@@ -49,13 +49,13 @@ class ScryfallPrinting implements Card.Printing {
 
 	private final ScryfallSet set;
 	private final ScryfallCard card;
-	final emi.lib.scryfall.api.Card cardJson;
+	final emi.lib.mtg.scryfall.api.Card cardJson;
 
 	final EnumHashBiMap<Card.Face.Kind, ScryfallPrintedFace> faces;
 
 	private int variation;
 
-	ScryfallPrinting(ScryfallSet set, ScryfallCard card, emi.lib.scryfall.api.Card cardJson) {
+	ScryfallPrinting(ScryfallSet set, ScryfallCard card, emi.lib.mtg.scryfall.api.Card cardJson) {
 		this.set = set;
 		this.card = card;
 		this.cardJson = cardJson;
