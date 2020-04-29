@@ -27,12 +27,8 @@ class ScryfallCard implements Card {
 		this.legalities = new EnumMap<>(Format.class);
 		if (jsonCard.legalities != null && !jsonCard.legalities.isEmpty()) {
 			for (Map.Entry<GameFormat, emi.lib.mtg.scryfall.api.enums.Legality> entry : jsonCard.legalities.entrySet()) {
-				try {
-					Format libFormat = Format.valueOf(entry.getKey().name());
-					Legality libLegality = Legality.valueOf(entry.getValue().name());
-					this.legalities.put(libFormat, libLegality);
-				} catch (IllegalArgumentException iae) {
-					System.err.println("Error mapping card legality: " + iae.getMessage());
+				if (entry.getKey().libMtgFormat != null) {
+					this.legalities.put(entry.getKey().libMtgFormat, entry.getValue().libMtgLegality);
 				}
 			}
 		}

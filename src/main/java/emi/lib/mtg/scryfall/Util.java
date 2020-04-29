@@ -32,48 +32,19 @@ class Util {
 		}
 
 		for (emi.lib.mtg.scryfall.api.enums.Color color : apiColors) {
-			switch (color) {
-				case White:
-					out.add(Color.WHITE);
-					break;
-				case Blue:
-					out.add(Color.BLUE);
-					break;
-				case Black:
-					out.add(Color.BLACK);
-					break;
-				case Red:
-					out.add(Color.RED);
-					break;
-				case Green:
-					out.add(Color.GREEN);
-					break;
-				default:
-					assert false : "Bwuh?";
-					break;
-			}
+			assert color.libMtgColor != null : "Bwuh?";
+			out.add(color.libMtgColor);
 		}
 
 		return out;
 	}
 
 	static CardRarity mapRarity(emi.lib.mtg.scryfall.api.Card card) {
-		switch (card.rarity) {
-			case Common:
-				if (card.typeLine != null && card.typeLine.contains("Basic Land")) {
-					return CardRarity.BasicLand;
-				} else {
-					return CardRarity.Common;
-				}
-			case Uncommon:
-				return CardRarity.Uncommon;
-			case Rare:
-				return CardRarity.Rare;
-			case Mythic:
-				return CardRarity.MythicRare; // TODO: Try and figure out 'special' rarity cards?
-			default:
-				assert false;
-				return null;
+		if (card.typeLine != null && card.typeLine.contains("Basic Land")) {
+			return CardRarity.BasicLand;
 		}
+
+		assert card.rarity.libMtgRarity != null : "The rarity of card " + card.name + " was unrecognized.";
+		return card.rarity.libMtgRarity;
 	}
 }
