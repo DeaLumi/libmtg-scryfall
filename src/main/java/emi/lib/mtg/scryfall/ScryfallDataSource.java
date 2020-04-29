@@ -25,11 +25,13 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.DoubleConsumer;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
 
-	private static final Path DATA_FILE = Paths.get("data", "scryfall", "data.json");
+	private static final Path DATA_FILE = Paths.get("data", "scryfall", "data.json.gz");
 
 	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
 			GameFormat.Duel,
@@ -94,7 +96,7 @@ public class ScryfallDataSource implements DataSource {
 		Set<String> droppedSets = new HashSet<>();
 
 		Path tmp = Files.createTempFile("scryfall-data", ".json");
-		JsonWriter writer = ScryfallApi.GSON.newJsonWriter(new OutputStreamWriter(Files.newOutputStream(tmp), StandardCharsets.UTF_8));
+		JsonWriter writer = ScryfallApi.GSON.newJsonWriter(new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(tmp)), StandardCharsets.UTF_8));
 
 		writer.beginObject();
 
@@ -201,7 +203,7 @@ public class ScryfallDataSource implements DataSource {
 		BiMap<String, emi.lib.mtg.scryfall.api.Set> jsonSets = HashBiMap.create();
 		BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards = HashBiMap.create();
 
-		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(Files.newInputStream(DATA_FILE), StandardCharsets.UTF_8));
+		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(DATA_FILE)), StandardCharsets.UTF_8));
 		reader.beginObject();
 
 		expect(reader.nextName(), "sets");
