@@ -50,37 +50,35 @@ class ScryfallFace implements Card.Face {
 			return;
 		}
 
-		EnumSet<Color> colorIdentity = EnumSet.noneOf(Color.class);
+		EnumSet<Color> colorIdentity = EnumSet.noneOf(Color.class),
+				color = EnumSet.noneOf(Color.class);
 		switch (this.kind()) {
-			case Front:
 			case Flipped:
-				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colors)));
+				color = Util.mapColor(orEmpty(cardJson.colors));
 				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colorIndicator)));
 				ManaSymbol.symbolsIn(cardJson.oracleText).stream()
 						.map(ManaSymbol::color)
 						.forEach(colorIdentity::addAll);
 				break;
 
+			case Front:
 			case Transformed:
 			case Left:
 			case Right:
+			case Other:
 				// Have to check for faceJson here; meld backsides are still separate Card objects.
-				color = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors)));
+				color = Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors));
 				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator)));
 				ManaSymbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText).stream()
 						.map(ManaSymbol::color)
 						.forEach(colorIdentity::addAll);
 				break;
-
-			case Other:
-				assert false;
-				color = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
-				colorIndicator = Collections.unmodifiableSet(EnumSet.noneOf(Color.class));
-				break;
 		}
 
+		color.addAll(colorIndicator);
+		this.color = Collections.unmodifiableSet(color);
+
 		colorIdentity.addAll(color);
-		colorIdentity.addAll(colorIndicator);
 		this.colorIdentity = Collections.unmodifiableSet(colorIdentity);
 	}
 
