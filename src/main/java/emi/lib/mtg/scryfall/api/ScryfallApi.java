@@ -3,30 +3,67 @@ package emi.lib.mtg.scryfall.api;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import emi.lib.mtg.scryfall.api.enums.ApiEnum;
+import emi.lib.mtg.scryfall.api.enums.BulkDataType;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.function.DoubleConsumer;
+import java.util.function.LongConsumer;
 
 public class ScryfallApi {
 	private static final int REQUEST_PAUSE = 250;
-	private static final URL BASE;
+	private static final URL URL_BASE;
 	public static final Gson GSON;
+
+	private static final URL URL_SETS;
+	private static final URL URL_BULK;
+
+	private static TypeAdapter<Instant> instantAdapter() {
+		return new TypeAdapter<Instant>() {
+			@Override
+			public void write(JsonWriter out, Instant value) throws IOException {
+				out.value(value.atOffset(ZoneOffset.UTC).toString());
+			}
+
+			@Override
+			public Instant read(JsonReader in) throws IOException {
+				String sval = "";
+				switch (in.peek()) {
+					case NAME:
+						sval = in.nextName();
+						break;
+					case STRING:
+						sval = in.nextString();
+						break;
+					default:
+						assert false;
+						return Instant.MIN;
+				}
+				return Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(sval));
+			}
+		};
+	}
 
 	static {
 		try {
-			BASE = new URL("https://api.scryfall.com/");
+			URL_BASE = new URL("https://api.scryfall.com/");
+			URL_SETS = new URL(URL_BASE, "/sets");
+			URL_BULK = new URL(URL_BASE, "/bulk-data");
 		} catch (MalformedURLException mue) {
 			throw new Error(mue);
 		}
@@ -35,6 +72,7 @@ public class ScryfallApi {
 
 		// Register enum type adapters
 		builder.registerTypeAdapterFactory(ApiEnum.typeAdapterFactory());
+		builder.registerTypeAdapter(Instant.class, instantAdapter());
 
 		builder.enableComplexMapKeySerialization();
 		builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
@@ -57,7 +95,7 @@ public class ScryfallApi {
 		this.nextRequest = System.currentTimeMillis();
 	}
 
-	private <T> ScheduledFuture<T> requestJsonAsync(URL url, Type type) {
+	private <T> ScheduledFuture<T> requestJsonAsync(URL url, Type type, LongConsumer reporter) {
 		long delay;
 		synchronized(this) {
 			long now = System.currentTimeMillis();
@@ -75,15 +113,15 @@ public class ScryfallApi {
 					return null;
 				}
 
-				return GSON.fromJson(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8), type);
+				return GSON.fromJson(new InputStreamReader(new ReportingWrapper(connection.getInputStream(), reporter), StandardCharsets.UTF_8), type);
 			} catch (IOException e) {
 				return null;
 			}
 		}, delay, TimeUnit.MILLISECONDS);
 	}
 
-	public <T> T requestJson(URL url, Type type) {
-		ScheduledFuture<T> downloadTask = requestJsonAsync(url, type);
+	public <T> T requestJson(URL url, Type type, LongConsumer report) {
+		ScheduledFuture<T> downloadTask = requestJsonAsync(url, type, report);
 
 		while (!downloadTask.isDone()) {
 			try {
@@ -103,29 +141,35 @@ public class ScryfallApi {
 		}
 	}
 
+	public <T> T requestJson(URL url, Type type) {
+		return requestJson(url, type, null);
+	}
+
+	public <T> T requestJson(URL url, Class<T> cls, LongConsumer report) {
+		return requestJson(url, (Type) cls, report);
+	}
+
 	public <T> T requestJson(URL url, Class<T> cls) {
-		return requestJson(url, (Type) cls);
+		return requestJson(url, cls, null);
 	}
 
 	public PagedList<Set> sets() {
-		try {
-			return new PagedList<>(this, requestJson(new URL(BASE, "/sets"), ApiObjectList.SetList.class));
-		} catch (MalformedURLException e) {
-			throw new AssertionError(e);
-		}
+		return new PagedList<>(this, requestJson(URL_SETS, ApiObjectList.SetList.class, null));
 	}
 
-	public PagedList<Card> cards() {
-		try {
-			return new PagedList<>(this, requestJson(new URL(BASE, "/cards"), ApiObjectList.CardList.class));
-		} catch (MalformedURLException e) {
-			throw new AssertionError(e);
-		}
+	public BulkDataList bulkData() {
+		return requestJson(URL_BULK, BulkDataList.class, null);
 	}
 
-	public List<Card> cardsBulk() {
+	public List<Card> defaultCardsBulk(DoubleConsumer progress) {
+		BulkDataList bulk = bulkData();
+		BulkDataList.Entry defaultCards = bulk.data.stream().filter(x -> x.type == BulkDataType.DefaultCards).findAny().orElse(null);
+
+		if (defaultCards == null) throw new AssertionError(new IOException("Couldn't find scryfall bulk default card data URI!"));
+
 		try {
-			return requestJson(new URL("https://archive.scryfall.com/json/scryfall-default-cards.json"), new TypeToken<List<Card>>(){}.getType());
+			return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(),
+					progress == null ? null : x -> progress.accept((double) x / (double) defaultCards.compressedSize));
 		} catch (MalformedURLException e) {
 			throw new AssertionError(e);
 		}
@@ -138,7 +182,7 @@ public class ScryfallApi {
 	public PagedList<Card> query(String syntax, String unique, boolean include_extras, boolean include_multilingual) {
 		try {
 			String query = URLEncoder.encode(syntax, "UTF-8");
-			return new PagedList<>(this, requestJson(new URL(BASE, String.format("/cards/search?q=%s&unique=%s&include_extras=%s&include_multilingual=%s", query, unique, Boolean.toString(include_extras), Boolean.toString(include_multilingual))), ApiObjectList.CardList.class));
+			return new PagedList<>(this, requestJson(new URL(URL_BASE, String.format("/cards/search?q=%s&unique=%s&include_extras=%s&include_multilingual=%s", query, unique, Boolean.toString(include_extras), Boolean.toString(include_multilingual))), ApiObjectList.CardList.class));
 		} catch (MalformedURLException | UnsupportedEncodingException e) {
 			throw new AssertionError(e);
 		}
@@ -148,7 +192,9 @@ public class ScryfallApi {
 		ScryfallApi api = new ScryfallApi();
 
 		long start = System.nanoTime();
-		List<Card> results = api.cardsBulk();
+		System.out.print("Cards:     ");
+		List<Card> results = api.defaultCardsBulk(x -> System.out.print(String.format("\033[4D% 3d%%", (int) (x * 100.0))));
+		System.out.println();
 		System.out.println(String.format("Took %.2f seconds to download %d cards.", (System.nanoTime() - start) / 1e9, results.size()));
 
 		try (FileWriter writer = new FileWriter("standard.json")) {

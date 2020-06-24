@@ -79,6 +79,7 @@ public class Card extends ApiObject {
 	public String printedText;
 	public String printedTypeLine;
 	public String set;
+	public SetType setType;
 	public String setName;
 	public String collectorNumber;
 	public URL setSearchUri;

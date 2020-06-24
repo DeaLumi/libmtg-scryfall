@@ -117,7 +117,7 @@ public class ScryfallDataSource implements DataSource {
 		}
 		writer.endObject();
 
-		List<emi.lib.mtg.scryfall.api.Card> cards = api.cardsBulk();
+		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(null);
 
 		writer.name("printings");
 		writer.beginObject();
@@ -130,6 +130,10 @@ public class ScryfallDataSource implements DataSource {
 			}
 
 			if (card.layout == CardLayout.ArtSeries) {
+				continue;
+			}
+
+			if ("Card".equals(card.typeLine)) {
 				continue;
 			}
 
@@ -264,6 +268,8 @@ public class ScryfallDataSource implements DataSource {
 
 		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
 
+		dataSource.loadData();
+
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
 
 		System.in.read();
@@ -289,6 +295,5 @@ public class ScryfallDataSource implements DataSource {
 				System.out.println("New data source is missing card name " + name);
 			}
 		}
-
 	}
 }
