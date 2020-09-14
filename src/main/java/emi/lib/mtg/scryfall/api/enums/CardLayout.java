@@ -18,6 +18,7 @@ public enum CardLayout implements ApiEnum {
 	Saga,
 	Adventure,
 	ArtSeries,
+	ModalDFC,
 	Unrecognized;
 
 	@Override

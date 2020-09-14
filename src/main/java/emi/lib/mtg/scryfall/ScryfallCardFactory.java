@@ -76,7 +76,8 @@ class ScryfallCardFactory {
 				return;
 			}
 
-			case Transform: {
+			case Transform:
+			case ModalDFC: {
 				createTransform(jsonSets, jsonCards, jsonCard, sets, cards, printings);
 				return;
 			}
@@ -128,6 +129,7 @@ class ScryfallCardFactory {
 			case Flip:
 			case Transform:
 			case Adventure:
+			case ModalDFC:
 				sb.append(jsonCard.cardFaces.get(0).name).append('\n');
 				sb.append(jsonCard.cardFaces.get(0).oracleText).append('\n');
 				sb.append("\n//\n\n");

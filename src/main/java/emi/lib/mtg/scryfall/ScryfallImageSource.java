@@ -19,12 +19,14 @@ public class ScryfallImageSource implements ImageSource {
 	}
 
 	private URL url(emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson, String imageUri) {
-		if (cardJson.layout == CardLayout.Transform) {
-			assert faceJson != null && faceJson.imageUris != null;
-			return faceJson.imageUris.get(imageUri);
-		} else {
-			assert cardJson.imageUris != null;
-			return cardJson.imageUris.get(imageUri);
+		switch (cardJson.layout) {
+			case Transform:
+			case ModalDFC:
+				assert faceJson != null && faceJson.imageUris != null;
+				return faceJson.imageUris.get(imageUri);
+			default:
+				assert cardJson.imageUris != null;
+				return cardJson.imageUris.get(imageUri);
 		}
 	}
 
