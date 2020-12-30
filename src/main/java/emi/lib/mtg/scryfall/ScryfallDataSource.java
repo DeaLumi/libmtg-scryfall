@@ -11,7 +11,6 @@ import emi.lib.mtg.scryfall.api.enums.CardLayout;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.api.enums.SetType;
 import emi.lib.mtg.scryfall.util.MirrorMap;
-import emi.lib.mtg.scryfall.util.MirrorSet;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -90,7 +89,6 @@ public class ScryfallDataSource implements DataSource {
 			Files.createDirectories(DATA_FILE.getParent());
 		}
 
-		System.out.println("Sets file needs update. Please wait...");
 		ScryfallApi api = new ScryfallApi();
 		List<emi.lib.mtg.scryfall.api.Set> sets = api.sets();
 		Set<String> droppedSets = new HashSet<>();
@@ -103,17 +101,13 @@ public class ScryfallDataSource implements DataSource {
 		writer.name("sets");
 		writer.beginObject();
 		for (emi.lib.mtg.scryfall.api.Set set : sets) {
-			System.out.print(" Set: " + set.code + " / " + set.name + "... ");
-
 			if (set.setType == SetType.Token) {
-				System.out.println("ignored (token set)");
 				droppedSets.add(set.code);
 				continue;
 			}
 
 			writer.name(set.code);
 			ScryfallApi.GSON.toJson(set, emi.lib.mtg.scryfall.api.Set.class, writer);
-			System.out.println("done!");
 		}
 		writer.endObject();
 
@@ -121,8 +115,8 @@ public class ScryfallDataSource implements DataSource {
 
 		writer.name("printings");
 		writer.beginObject();
-		System.out.print("Cards:     ");
-		System.out.flush();
+		writer.name("count");
+		writer.value(cards.size());
 		int statusCounter = 0;
 		for (emi.lib.mtg.scryfall.api.Card card : cards) {
 			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken || card.layout == CardLayout.Emblem) {
@@ -160,12 +154,9 @@ public class ScryfallDataSource implements DataSource {
 			writer.name(card.id.toString());
 			ScryfallApi.GSON.toJson(card, emi.lib.mtg.scryfall.api.Card.class, writer);
 
-			++statusCounter;
-			double status = (double) statusCounter / (double) cards.size();
-			System.out.print(String.format("\033[4D% 3d%%", (int) (status * 100.0)));
-
 			if (progress != null) {
-				progress.accept(status);
+				++statusCounter;
+				progress.accept((double) statusCounter / (double) cards.size());
 			}
 		}
 		writer.endObject();
@@ -176,13 +167,8 @@ public class ScryfallDataSource implements DataSource {
 		Files.copy(tmp, DATA_FILE, StandardCopyOption.REPLACE_EXISTING);
 		Files.delete(tmp);
 
-		System.out.println();
-		System.out.println("Done! Cleaning up...");
-
 		System.gc();
 		System.gc();
-
-		System.out.println("Done! Next update in one week~");
 
 		return true;
 	}
@@ -199,7 +185,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	@Override
-	public void loadData() throws IOException {
+	public void loadData(DoubleConsumer progress) throws IOException {
 		this.cards.clear();
 		this.printings.clear();
 		this.sets.clear();
@@ -227,6 +213,9 @@ public class ScryfallDataSource implements DataSource {
 
 		expect(reader.nextName(), "printings");
 		reader.beginObject();
+		expect(reader.nextName(), "count");
+		final double printingCount = reader.nextLong();
+		int batch = 0;
 		while (reader.peek() == JsonToken.NAME) {
 			String id = reader.nextName();
 			emi.lib.mtg.scryfall.api.Card card = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Card.class);
@@ -237,12 +226,20 @@ public class ScryfallDataSource implements DataSource {
 			}
 
 			jsonCards.put(card.id, card);
+
+			if (progress != null) {
+				++batch;
+				if ((batch & 0x1FF) == 0) {
+					progress.accept(0.5 * (jsonCards.size() / printingCount));
+				}
+			}
 		}
 		reader.endObject();
 
 		reader.endObject();
 		reader.close();
 
+		batch = 0;
 		while (!jsonCards.isEmpty()) {
 			emi.lib.mtg.scryfall.api.Card jsonCard = jsonCards.values().iterator().next();
 
@@ -252,6 +249,13 @@ public class ScryfallDataSource implements DataSource {
 				problem.printStackTrace();
 				jsonCards.values().remove(jsonCard);
 				System.out.println("Unable to create libmtg card for " + jsonCard.printedName + " / " + jsonCard.name + " / " + jsonCard.uri.toString());
+			}
+
+			if (progress != null) {
+				++batch;
+				if ((batch & 0x1FF) == 0) {
+					progress.accept(0.5 + 0.5 * (printings.size() / printingCount));
+				}
 			}
 		}
 	}
@@ -268,7 +272,7 @@ public class ScryfallDataSource implements DataSource {
 
 		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
 
-		dataSource.loadData();
+		dataSource.loadData(null);
 
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
 
