@@ -6,9 +6,11 @@ import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.game.Format;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
-import emi.lib.mtg.scryfall.api.enums.Legality;
 
-import java.util.*;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 class ScryfallCard implements Card {
 	private final String name;

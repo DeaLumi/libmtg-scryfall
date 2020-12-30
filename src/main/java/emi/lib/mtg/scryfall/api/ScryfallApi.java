@@ -18,6 +18,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -59,6 +60,32 @@ public class ScryfallApi {
 		};
 	}
 
+	private static TypeAdapter<LocalDate> localDateAdapter() {
+		return new TypeAdapter<LocalDate>() {
+			@Override
+			public void write(JsonWriter out, LocalDate value) throws IOException {
+				out.value(value.toString());
+			}
+
+			@Override
+			public LocalDate read(JsonReader in) throws IOException {
+				String sval = "";
+				switch (in.peek()) {
+					case NAME:
+						sval = in.nextName();
+						break;
+					case STRING:
+						sval = in.nextString();
+						break;
+					default:
+						assert false;
+						return LocalDate.MIN;
+				}
+				return LocalDate.from(DateTimeFormatter.ISO_DATE.parse(sval));
+			}
+		};
+	}
+
 	static {
 		try {
 			URL_BASE = new URL("https://api.scryfall.com/");
@@ -73,6 +100,7 @@ public class ScryfallApi {
 		// Register enum type adapters
 		builder.registerTypeAdapterFactory(ApiEnum.typeAdapterFactory());
 		builder.registerTypeAdapter(Instant.class, instantAdapter());
+		builder.registerTypeAdapter(LocalDate.class, localDateAdapter());
 
 		builder.enableComplexMapKeySerialization();
 		builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);

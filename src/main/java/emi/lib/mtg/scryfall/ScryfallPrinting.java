@@ -130,6 +130,11 @@ class ScryfallPrinting implements Card.Printing {
 	}
 
 	@Override
+	public boolean promo() {
+		return cardJson.promo;
+	}
+
+	@Override
 	public UUID id() {
 		return cardJson.id;
 	}

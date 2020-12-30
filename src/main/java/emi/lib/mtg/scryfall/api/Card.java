@@ -92,6 +92,7 @@ public class Card extends ApiObject {
 	public boolean oversized;
 	public boolean reprint;
 	public boolean digital;
+	public boolean promo;
 	public UUID illustrationId;
 	public Rarity rarity;
 	public String flavorText;

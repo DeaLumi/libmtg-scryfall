@@ -4,6 +4,7 @@ import com.google.common.collect.HashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.Set;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 class ScryfallSet implements Set {
@@ -25,6 +26,16 @@ class ScryfallSet implements Set {
 	@Override
 	public String code() {
 		return setJson.code;
+	}
+
+	@Override
+	public LocalDate releaseDate() {
+		return setJson.releasedAt;
+	}
+
+	@Override
+	public boolean digital() {
+		return setJson.digital;
 	}
 
 	@Override
