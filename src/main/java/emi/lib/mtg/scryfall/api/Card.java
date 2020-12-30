@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class Card extends ApiObject {
-	public static class Face {
+	public static class Face extends ApiObject {
 
 		/*
 		 * Gameplay Information
@@ -27,6 +27,9 @@ public class Card extends ApiObject {
 		 */
 
 		public String flavorText;
+		public String artist;
+		public UUID artistId;
+		public UUID illustrationId;
 		public Map<String, URL> imageUris;
 	}
 
