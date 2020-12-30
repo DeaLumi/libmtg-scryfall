@@ -15,6 +15,7 @@ import emi.lib.mtg.scryfall.util.MirrorMap;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -176,12 +177,31 @@ public class ScryfallDataSource implements DataSource {
 	@Override
 	public boolean needsUpdate() {
 		try {
-			return !Files.exists(DATA_FILE) || Instant.now().minusMillis(UPDATE_INTERVAL).isAfter(Files.getLastModifiedTime(DATA_FILE).toInstant());
+			Instant ref = Instant.now().minusMillis(UPDATE_INTERVAL);
+			Instant version = Files.getLastModifiedTime(getJarPath()).toInstant();
+			if (ref.isBefore(version)) {
+				ref = version;
+			}
+
+			return !Files.exists(DATA_FILE) ||
+					ref.isAfter(Files.getLastModifiedTime(DATA_FILE).toInstant());
 		} catch (IOException ioe) {
 			System.err.println(String.format("Unable to check %s for freshness -- please update Scryfall data.", DATA_FILE.toString()));
 			ioe.printStackTrace();
 			return true;
 		}
+	}
+
+	private static Path getJarPath() {
+		URL jarUrl = ScryfallDataSource.class.getProtectionDomain().getCodeSource().getLocation();
+		Path jarPath;
+		try {
+			jarPath = Paths.get(jarUrl.toURI()).toAbsolutePath();
+		} catch (URISyntaxException urise) {
+			jarPath = Paths.get(jarUrl.getPath()).toAbsolutePath();
+		}
+
+		return jarPath;
 	}
 
 	@Override
