@@ -1,29 +1,25 @@
 package emi.lib.mtg.scryfall;
 
-import com.google.common.collect.EnumHashBiMap;
-import com.google.common.collect.HashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.game.Format;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
+import emi.lib.mtg.scryfall.util.MirrorMap;
 
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 class ScryfallCard implements Card {
 	private final String name;
 
-	final EnumHashBiMap<Face.Kind, ScryfallFace> faces;
-	final HashBiMap<UUID, ScryfallPrinting> printings;
+	final MirrorMap<Face.Kind, ScryfallFace> faces;
+	final MirrorMap<UUID, ScryfallPrinting> printings;
 	final EnumMap<Format, Legality> legalities;
 	final Set<Color> colorIdentity;
 
 	ScryfallCard(emi.lib.mtg.scryfall.api.Card jsonCard) {
 		this.name = jsonCard.name;
-		this.faces = EnumHashBiMap.create(Face.Kind.class);
-		this.printings = HashBiMap.create();
+		this.faces = new MirrorMap<>(() -> new EnumMap<>(Face.Kind.class));
+		this.printings = new MirrorMap<>(HashMap::new);
 
 		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
 		this.legalities = new EnumMap<>(Format.class);
@@ -38,7 +34,7 @@ class ScryfallCard implements Card {
 
 	@Override
 	public Set<ScryfallFace> faces() {
-		return faces.values();
+		return faces.valueSet();
 	}
 
 	@Override
@@ -48,7 +44,7 @@ class ScryfallCard implements Card {
 
 	@Override
 	public Set<ScryfallPrinting> printings() {
-		return printings.values();
+		return printings.valueSet();
 	}
 
 	@Override

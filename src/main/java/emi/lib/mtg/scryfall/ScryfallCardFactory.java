@@ -1,6 +1,5 @@
 package emi.lib.mtg.scryfall;
 
-import com.google.common.collect.BiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.scryfall.api.Set;
 
@@ -9,12 +8,12 @@ import java.util.Map;
 import java.util.UUID;
 
 class ScryfallCardFactory {
-	static void create(BiMap<String, Set> jsonSets,
-					   BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+	static void create(Map<String, Set> jsonSets,
+					   Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 					   emi.lib.mtg.scryfall.api.Card jsonCard,
-					   BiMap<String, ScryfallSet> sets,
-					   BiMap<UUID, ScryfallCard> cards,
-					   BiMap<UUID, ScryfallPrinting> printings) {
+					   Map<String, ScryfallSet> sets,
+					   Map<UUID, ScryfallCard> cards,
+					   Map<UUID, ScryfallPrinting> printings) {
 		switch (jsonCard.layout) {
 			case Normal: {
 				// TODO: Oh my god this is all so gross.
@@ -119,7 +118,7 @@ class ScryfallCardFactory {
 		jsonCards.values().remove(jsonCard);
 	}
 
-	private static UUID calculateCardUUID(BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards, emi.lib.mtg.scryfall.api.Card jsonCard) {
+	private static UUID calculateCardUUID(Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards, emi.lib.mtg.scryfall.api.Card jsonCard) {
 		StringBuilder sb = new StringBuilder();
 		switch (jsonCard.layout) {
 			case Normal:
@@ -167,12 +166,12 @@ class ScryfallCardFactory {
 		return UUID.nameUUIDFromBytes(sb.toString().getBytes(StandardCharsets.UTF_8));
 	}
 
-	private static void createSimple(BiMap<String, Set> jsonSets,
-									 BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+	private static void createSimple(Map<String, Set> jsonSets,
+									 Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 									 emi.lib.mtg.scryfall.api.Card jsonCard,
-									 BiMap<String, ScryfallSet> sets,
-									 BiMap<UUID, ScryfallCard> cards,
-									 BiMap<UUID, ScryfallPrinting> printings) {
+									 Map<String, ScryfallSet> sets,
+									 Map<UUID, ScryfallCard> cards,
+									 Map<UUID, ScryfallPrinting> printings) {
 		jsonCards.values().remove(jsonCard);
 
 		if (jsonCard.typeLine.startsWith("Token")) {
@@ -193,12 +192,12 @@ class ScryfallCardFactory {
 		printings.put(print.id(), print);
 	}
 
-	private static void createSplit(BiMap<String, Set> jsonSets,
-									BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+	private static void createSplit(Map<String, Set> jsonSets,
+									Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 									emi.lib.mtg.scryfall.api.Card jsonCard,
-									BiMap<String, ScryfallSet> sets,
-									BiMap<UUID, ScryfallCard> cards,
-									BiMap<UUID, ScryfallPrinting> printings) {
+									Map<String, ScryfallSet> sets,
+									Map<UUID, ScryfallCard> cards,
+									Map<UUID, ScryfallPrinting> printings) {
 		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 
 		jsonCards.values().remove(jsonCard);
@@ -217,12 +216,12 @@ class ScryfallCardFactory {
 		printings.put(print.id(), print);
 	}
 
-	private static void createFlip(BiMap<String, Set> jsonSets,
-								   BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+	private static void createFlip(Map<String, Set> jsonSets,
+								   Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 								   emi.lib.mtg.scryfall.api.Card jsonCard,
-								   BiMap<String, ScryfallSet> sets,
-								   BiMap<UUID, ScryfallCard> cards,
-								   BiMap<UUID, ScryfallPrinting> printings) {
+								   Map<String, ScryfallSet> sets,
+								   Map<UUID, ScryfallCard> cards,
+								   Map<UUID, ScryfallPrinting> printings) {
 		ScryfallCard card = cards.computeIfAbsent(calculateCardUUID(jsonCards, jsonCard), c -> new ScryfallCard(jsonCard));
 
 		jsonCards.values().remove(jsonCard);
@@ -242,7 +241,7 @@ class ScryfallCardFactory {
 	}
 
 	private static void createTransform(Map<String, Set> jsonSets,
-										BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+										Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 										emi.lib.mtg.scryfall.api.Card jsonCard,
 										Map<String, ScryfallSet> sets,
 										Map<UUID, ScryfallCard> cards,
@@ -304,7 +303,7 @@ class ScryfallCardFactory {
 	}
 
 	private static void createMeld(Map<String, Set> jsonSets,
-								   BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+								   Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 								   emi.lib.mtg.scryfall.api.Card jsonCard,
 								   Map<String, ScryfallSet> sets,
 								   Map<UUID, ScryfallCard> cards,
@@ -346,7 +345,7 @@ class ScryfallCardFactory {
 	}
 
 	private static void createAdventure(Map<String, Set> jsonSets,
-										BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
+										Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards,
 										emi.lib.mtg.scryfall.api.Card jsonCard,
 										Map<String, ScryfallSet> sets,
 										Map<UUID, ScryfallCard> cards,

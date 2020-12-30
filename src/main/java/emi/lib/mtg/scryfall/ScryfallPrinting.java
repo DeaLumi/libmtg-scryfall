@@ -1,8 +1,8 @@
 package emi.lib.mtg.scryfall;
 
-import com.google.common.collect.EnumHashBiMap;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.CardRarity;
+import emi.lib.mtg.scryfall.util.MirrorMap;
 
 import java.util.*;
 
@@ -51,7 +51,7 @@ class ScryfallPrinting implements Card.Printing {
 	private final ScryfallCard card;
 	final emi.lib.mtg.scryfall.api.Card cardJson;
 
-	final EnumHashBiMap<Card.Face.Kind, ScryfallPrintedFace> faces;
+	final MirrorMap<Card.Face.Kind, ScryfallPrintedFace> faces;
 
 	private int variation;
 
@@ -60,7 +60,7 @@ class ScryfallPrinting implements Card.Printing {
 		this.card = card;
 		this.cardJson = cardJson;
 
-		this.faces = EnumHashBiMap.create(Card.Face.Kind.class);
+		this.faces = new MirrorMap<>(() -> new EnumMap<>(Card.Face.Kind.class));
 
 		this.variation = -1;
 	}
@@ -72,7 +72,7 @@ class ScryfallPrinting implements Card.Printing {
 
 	@Override
 	public Set<ScryfallPrintedFace> faces() {
-		return faces.values();
+		return faces.valueSet();
 	}
 
 	@Override

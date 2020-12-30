@@ -1,7 +1,5 @@
 package emi.lib.mtg.scryfall;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -12,6 +10,8 @@ import emi.lib.mtg.scryfall.api.Catalog;
 import emi.lib.mtg.scryfall.api.enums.CardLayout;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.api.enums.SetType;
+import emi.lib.mtg.scryfall.util.MirrorMap;
+import emi.lib.mtg.scryfall.util.MirrorSet;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -44,14 +44,14 @@ public class ScryfallDataSource implements DataSource {
 		}
 	}
 
-	private final BiMap<UUID, ScryfallPrinting> printings;
-	private final BiMap<UUID, ScryfallCard> cards;
-	private final BiMap<String, ScryfallSet> sets;
+	private final MirrorMap<UUID, ScryfallPrinting> printings;
+	private final MirrorMap<UUID, ScryfallCard> cards;
+	private final MirrorMap<String, ScryfallSet> sets;
 
 	public ScryfallDataSource() {
-		this.cards = HashBiMap.create();
-		this.printings = HashBiMap.create();
-		this.sets = HashBiMap.create();
+		this.cards = new MirrorMap<>(HashMap::new);
+		this.printings = new MirrorMap<>(HashMap::new);
+		this.sets = new MirrorMap<>(HashMap::new);
 	}
 
 	@Override
@@ -61,12 +61,12 @@ public class ScryfallDataSource implements DataSource {
 
 	@Override
 	public Set<? extends Card> cards() {
-		return cards.values();
+		return cards.valueSet();
 	}
 
 	@Override
 	public Set<? extends Card.Printing> printings() {
-		return printings.values();
+		return printings.valueSet();
 	}
 
 	@Override
@@ -76,7 +76,7 @@ public class ScryfallDataSource implements DataSource {
 
 	@Override
 	public Set<? extends emi.lib.mtg.Set> sets() {
-		return sets.values();
+		return sets.valueSet();
 	}
 
 	@Override
@@ -204,8 +204,8 @@ public class ScryfallDataSource implements DataSource {
 		this.printings.clear();
 		this.sets.clear();
 
-		BiMap<String, emi.lib.mtg.scryfall.api.Set> jsonSets = HashBiMap.create();
-		BiMap<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards = HashBiMap.create();
+		Map<String, emi.lib.mtg.scryfall.api.Set> jsonSets = new HashMap<>();
+		Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards = new HashMap<>();
 
 		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(DATA_FILE)), StandardCharsets.UTF_8));
 		reader.beginObject();
