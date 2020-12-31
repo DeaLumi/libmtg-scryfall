@@ -52,10 +52,12 @@ class ScryfallCard implements Card {
 		return printings.get(id);
 	}
 
-	@Override
-	public String name() {
-		return this.name;
-	}
+	// Scryfall reports flip cards by full name here for some reason.
+	// Use the mtglib default behavior for determining card name here.
+//	@Override
+//	public String name() {
+//		return this.name;
+//	}
 
 	@Override
 	public Legality legality(Format format) {
