@@ -45,6 +45,16 @@ public class ScryfallDataSource implements DataSource {
 			GameFormat.OldSchool,
 			GameFormat.Unrecognized);
 
+	private static final Set<String> HORDE_SETS = hordeSets();
+
+	private static Set<String> hordeSets() {
+		Set<String> tmp = new HashSet<>();
+		tmp.add("tbth");
+		tmp.add("tfth");
+		tmp.add("tdag");
+		return Collections.unmodifiableSet(tmp);
+	}
+
 	private static void expect(Object input, Object expected) throws IOException {
 		if (!Objects.equals(input, expected)) {
 			throw new IOException(String.format("Expected to see \'%s\', but got \'%s\' instead!", Objects.toString(input), Objects.toString(expected)));
@@ -103,7 +113,7 @@ public class ScryfallDataSource implements DataSource {
 		writer.name("sets");
 		writer.beginObject();
 		for (emi.lib.mtg.scryfall.api.Set set : sets) {
-			if (set.setType == SetType.Token) {
+			if (set.setType == SetType.Token && !HORDE_SETS.contains(set.code.toLowerCase())) {
 				droppedSets.add(set.code);
 				continue;
 			}
