@@ -3,15 +3,15 @@ package emi.lib.mtg.scryfall.util;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class MirrorSet<T> implements Set<T> {
-	public static <T> MirrorSet<T> of(Map<?, T> map) {
+public class MirrorSet<K, T> implements Set<T> {
+	public static <K, T> MirrorSet<K, T> of(Map<K, T> map) {
 		return new MirrorSet<>(map);
 	}
 
-	private static class MirrorIterator<T> implements Iterator<T> {
-		private final Iterator<Map.Entry<?, T>> backing;
+	private static class MirrorIterator<K, T> implements Iterator<T> {
+		private final Iterator<Map.Entry<K, T>> backing;
 
-		public MirrorIterator(Set<Map.Entry<?, T>> entrySet) {
+		public MirrorIterator(Set<Map.Entry<K, T>> entrySet) {
 			this.backing = entrySet.iterator();
 		}
 
@@ -36,9 +36,9 @@ public class MirrorSet<T> implements Set<T> {
 		}
 	}
 
-	private final Map<?, T> backing;
+	private final Map<K, T> backing;
 
-	public MirrorSet(Map<?, T> backing) {
+	public MirrorSet(Map<K, T> backing) {
 		this.backing = backing;
 	}
 
@@ -59,7 +59,7 @@ public class MirrorSet<T> implements Set<T> {
 
 	@Override
 	public Iterator<T> iterator() {
-		return new MirrorIterator(backing.entrySet());
+		return new MirrorIterator<>(backing.entrySet());
 	}
 
 	@Override

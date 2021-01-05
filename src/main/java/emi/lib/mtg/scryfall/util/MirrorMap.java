@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 
 public class MirrorMap<K, V> implements Map<K, V> {
 	private final Map<K, V> backing;
-	private final MirrorSet<V> mirror;
+	private final MirrorSet<K, V> mirror;
 
 	public MirrorMap(Supplier<Map<K, V>> backingFactory) {
 		this.backing = backingFactory.get();
