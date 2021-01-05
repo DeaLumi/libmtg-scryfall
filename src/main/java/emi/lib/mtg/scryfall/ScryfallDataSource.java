@@ -10,6 +10,7 @@ import emi.lib.mtg.scryfall.api.Catalog;
 import emi.lib.mtg.scryfall.api.enums.CardLayout;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.api.enums.SetType;
+import emi.lib.mtg.scryfall.util.CardId;
 import emi.lib.mtg.scryfall.util.MirrorMap;
 
 import java.io.IOException;
@@ -24,6 +25,12 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.DoubleConsumer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -44,15 +51,9 @@ public class ScryfallDataSource implements DataSource {
 		}
 	}
 
-	private final MirrorMap<UUID, ScryfallPrinting> printings;
-	private final MirrorMap<UUID, ScryfallCard> cards;
-	private final MirrorMap<String, ScryfallSet> sets;
-
-	public ScryfallDataSource() {
-		this.cards = new MirrorMap<>(HashMap::new);
-		this.printings = new MirrorMap<>(HashMap::new);
-		this.sets = new MirrorMap<>(HashMap::new);
-	}
+	private final MirrorMap<UUID, ScryfallPrinting> printings = new MirrorMap<>(Hashtable::new);
+	private final MirrorMap<CardId, ScryfallCard> cards = new MirrorMap<>(Hashtable::new);
+	private final MirrorMap<String, ScryfallSet> sets = new MirrorMap<>(Hashtable::new);
 
 	@Override
 	public String toString() {
@@ -204,14 +205,146 @@ public class ScryfallDataSource implements DataSource {
 		return jarPath;
 	}
 
+	private final Map<UUID, CompletableFuture<emi.lib.mtg.scryfall.api.Card>> await = new Hashtable<>();
+
+	private CompletableFuture<emi.lib.mtg.scryfall.api.Card> await(UUID id) {
+		return await.computeIfAbsent(id, x -> new CompletableFuture<>());
+	}
+
+	protected void process(emi.lib.mtg.scryfall.api.Card card) {
+		CompletableFuture<emi.lib.mtg.scryfall.api.Card> pending = await.get(card.id);
+
+		if (pending != null) {
+			pending.complete(card);
+			return;
+		}
+
+		if ("Who // What // When // Where // Why".equals(card.name) || "Smelt // Herd // Saw".equals(card.name)) {
+			createSimple(card);
+			return;
+		}
+
+		switch (card.layout) {
+			case Normal:
+			case Augment:
+			case Host:
+			case Leveler:
+			case Planar:
+			case Scheme:
+			case Vanguard:
+			case Saga:
+				createSimple(card);
+				return;
+			case Split:
+				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Left, emi.lib.mtg.Card.Face.Kind.Right);
+				return;
+			case Flip:
+				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Front, emi.lib.mtg.Card.Face.Kind.Flipped);
+				return;
+			case Transform:
+			case ModalDFC:
+				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Front, emi.lib.mtg.Card.Face.Kind.Transformed);
+				return;
+			case Adventure:
+				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Front, emi.lib.mtg.Card.Face.Kind.Other);
+				return;
+			case Meld:
+				initMeld(card);
+				return;
+			case Token:
+			case DoubleFacedToken:
+			case Emblem:
+				System.err.println(String.format("Unexpected token or emblem %s in set %s (%s)", card.name, card.setName, card.set));
+				return;
+		}
+	}
+
+	private void createSimple(emi.lib.mtg.scryfall.api.Card jsonCard) {
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
+		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(jsonCard));
+		ScryfallSet set = sets.get(jsonCard.set);
+
+		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, null));
+
+		set.printings.put(print.id(), print);
+		printings.put(print.id(), print);
+	}
+
+	private void createTwoFace(emi.lib.mtg.scryfall.api.Card jsonCard, emi.lib.mtg.Card.Face.Kind firstKind, emi.lib.mtg.Card.Face.Kind secondKind) {
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0), jsonCard.cardFaces.get(1)), id -> new ScryfallCard(jsonCard));
+		ScryfallSet set = sets.get(jsonCard.set);
+
+		ScryfallFace first = card.faces.computeIfAbsent(firstKind, k -> new ScryfallFace(firstKind, jsonCard, jsonCard.cardFaces.get(0)));
+		ScryfallFace second = card.faces.computeIfAbsent(secondKind, k -> new ScryfallFace(secondKind, jsonCard, jsonCard.cardFaces.get(1)));
+
+		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+
+		ScryfallPrintedFace firstPrint = print.faces.computeIfAbsent(firstKind, k -> new ScryfallPrintedFace(print, first, jsonCard, jsonCard.cardFaces.get(0)));
+		ScryfallPrintedFace secondPrint = print.faces.computeIfAbsent(secondKind, k -> new ScryfallPrintedFace(print, second, jsonCard, jsonCard.cardFaces.get(1)));
+
+		set.printings.put(print.id(), print);
+		printings.put(print.id(), print);
+	}
+
+	private final BiFunction<emi.lib.mtg.scryfall.api.Card, emi.lib.mtg.scryfall.api.Card, ScryfallPrinting> meld = (jsonFront, jsonBack) -> {
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonFront, jsonBack), id -> new ScryfallCard(jsonFront));
+		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(jsonFront));
+		ScryfallFace back = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallFace(jsonBack));
+
+		ScryfallSet set = sets.get(jsonFront.set);
+		ScryfallSet backSet = sets.get(jsonBack.set);
+
+		assert set == backSet;
+
+		ScryfallPrinting print = card.printings.computeIfAbsent(jsonFront.id, id -> new ScryfallPrinting(set, card, jsonFront));
+		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonFront, null));
+		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(print, back, jsonBack, null));
+
+		set.printings.put(print.id(), print);
+		printings.put(print.id(), print);
+
+		return print;
+	};
+
+	private void initMeld(emi.lib.mtg.scryfall.api.Card jsonCard) {
+		CompletableFuture<emi.lib.mtg.scryfall.api.Card> awaitOne = null, awaitOther = null, awaitBack = null;
+
+		for (emi.lib.mtg.scryfall.api.Card.Part part : jsonCard.allParts) {
+			CompletableFuture<emi.lib.mtg.scryfall.api.Card> await;
+
+			if (part.id.equals(jsonCard.id)) {
+				await = CompletableFuture.completedFuture(jsonCard);
+			} else {
+				await = await(part.id);
+			}
+
+			if ("meld_result".equals(part.component)) {
+				awaitBack = await;
+			} else if ("meld_part".equals(part.component)) {
+				if (awaitOne != null) awaitOther = awaitOne;
+				awaitOne = await;
+			} else {
+				System.err.println(String.format("Unexpected component %s in meld parts for %s; ignoring...", part.component, jsonCard.name));
+			}
+		}
+
+		assert awaitOne != null && awaitOther != null && awaitBack != null : String.format("Impossible meld combination related to %s", jsonCard.name);
+
+		CompletableFuture<ScryfallPrinting> one = awaitOne.thenCombine(awaitBack, meld),
+				other = awaitOther.thenCombine(awaitBack, meld);
+
+		one.thenAcceptBoth(other, (pr1, pr2) -> {
+			assert pr1.card().face(emi.lib.mtg.Card.Face.Kind.Transformed) == pr2.card().face(emi.lib.mtg.Card.Face.Kind.Transformed);
+			assert pr1.set() == pr2.set();
+		});
+	}
+
 	@Override
 	public void loadData(DoubleConsumer progress) throws IOException {
 		this.cards.clear();
 		this.printings.clear();
 		this.sets.clear();
-
-		Map<String, emi.lib.mtg.scryfall.api.Set> jsonSets = new HashMap<>();
-		Map<UUID, emi.lib.mtg.scryfall.api.Card> jsonCards = new HashMap<>();
 
 		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(DATA_FILE)), StandardCharsets.UTF_8));
 		reader.beginObject();
@@ -227,15 +360,17 @@ public class ScryfallDataSource implements DataSource {
 				continue;
 			}
 
-			jsonSets.put(set.code, set);
+			sets.put(set.code, new ScryfallSet(set));
 		}
 		reader.endObject();
+
+		ExecutorService processor = Executors.newCachedThreadPool();
 
 		expect(reader.nextName(), "printings");
 		reader.beginObject();
 		expect(reader.nextName(), "count");
 		final double printingCount = reader.nextLong();
-		int batch = 0;
+		final AtomicInteger processedCount = new AtomicInteger();
 		while (reader.peek() == JsonToken.NAME) {
 			String id = reader.nextName();
 			emi.lib.mtg.scryfall.api.Card card = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Card.class);
@@ -245,38 +380,27 @@ public class ScryfallDataSource implements DataSource {
 				continue;
 			}
 
-			jsonCards.put(card.id, card);
+			processor.submit(() -> {
+				process(card);
 
-			if (progress != null) {
-				++batch;
-				if ((batch & 0x1FF) == 0) {
-					progress.accept(0.5 * (jsonCards.size() / printingCount));
+				if (progress != null) {
+					int x = processedCount.incrementAndGet();
+					if ((x & 0x1FF) == 0) {
+						progress.accept(x / printingCount);
+					}
 				}
-			}
+			});
 		}
 		reader.endObject();
 
 		reader.endObject();
 		reader.close();
 
-		batch = 0;
-		while (!jsonCards.isEmpty()) {
-			emi.lib.mtg.scryfall.api.Card jsonCard = jsonCards.values().iterator().next();
-
-			try {
-				ScryfallCardFactory.create(jsonSets, jsonCards, jsonCard, sets, cards, printings);
-			} catch (Exception | Error problem) {
-				problem.printStackTrace();
-				jsonCards.values().remove(jsonCard);
-				System.out.println("Unable to create libmtg card for " + jsonCard.printedName + " / " + jsonCard.name + " / " + jsonCard.uri.toString());
-			}
-
-			if (progress != null) {
-				++batch;
-				if ((batch & 0x1FF) == 0) {
-					progress.accept(0.5 + 0.5 * (printings.size() / printingCount));
-				}
-			}
+		processor.shutdown();
+		try {
+			processor.awaitTermination(1, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			throw new IOException("Interrupted while processing cards", e);
 		}
 	}
 
