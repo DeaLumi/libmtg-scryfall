@@ -51,13 +51,4 @@ public class CardId {
 	public int hashCode() {
 		return Objects.hash(id);
 	}
-
-	/**
-	 * This is a hack until I switch the base class over to using CardId for clarity, I guess?
-	 * @return
-	 */
-	@Deprecated
-	public UUID id() {
-		return id;
-	}
 }
