@@ -25,10 +25,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.DoubleConsumer;
@@ -230,6 +227,7 @@ public class ScryfallDataSource implements DataSource {
 		}
 
 		if ("Who // What // When // Where // Why".equals(card.name) || "Smelt // Herd // Saw".equals(card.name)) {
+			card.typeLine = card.typeLine.replaceAll("[/][/] ", "");
 			createSimple(card);
 			return;
 		}
