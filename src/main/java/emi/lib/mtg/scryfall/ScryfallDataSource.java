@@ -424,7 +424,10 @@ public class ScryfallDataSource implements DataSource {
 
 		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
 
+		System.out.println("Begin loadData()");
+		start = System.nanoTime();
 		dataSource.loadData(null);
+		System.out.println(String.format("loadData() took %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
 
