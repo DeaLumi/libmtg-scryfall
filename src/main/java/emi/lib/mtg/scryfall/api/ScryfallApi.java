@@ -105,7 +105,6 @@ public class ScryfallApi {
 		builder.enableComplexMapKeySerialization();
 		builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
 
-		builder.setPrettyPrinting();
 
 		GSON = builder.create();
 	}
