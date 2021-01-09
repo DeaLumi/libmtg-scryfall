@@ -16,6 +16,8 @@ public enum GameFormat implements ApiEnum {
 	OldSchool (null),
 	Pioneer (Format.Pioneer),
 	Historic (Format.Historic),
+	Gladiator (null),
+	Premodern (null),
 	Unrecognized (null);
 
 	public final Format libMtgFormat;

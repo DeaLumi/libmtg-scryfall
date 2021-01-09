@@ -40,6 +40,8 @@ public class ScryfallDataSource implements DataSource {
 	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
 			GameFormat.Duel,
 			GameFormat.OldSchool,
+			GameFormat.Gladiator,
+			GameFormat.Premodern,
 			GameFormat.Unrecognized);
 
 	private static final Set<String> HORDE_SETS = hordeSets();
