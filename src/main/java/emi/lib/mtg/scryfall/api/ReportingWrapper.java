@@ -23,10 +23,6 @@ class ReportingWrapper extends InputStream {
 	}
 
 	private long move(long delta) {
-		if (report == null) {
-			return delta;
-		}
-
 		read += delta;
 		report.accept(read);
 		return delta;

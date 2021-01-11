@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.DoubleConsumer;
 import java.util.function.LongConsumer;
+import java.util.zip.GZIPInputStream;
 
 public class ScryfallApi {
 	private static final int REQUEST_PAUSE = 250;
@@ -133,6 +134,7 @@ public class ScryfallApi {
 		return executor.schedule(() -> {
 			try {
 				HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+				connection.setRequestProperty("Accept-Encoding", "gzip");
 
 				if (connection.getResponseCode() != 200) {
 					// TODO: Handle errors...
@@ -140,15 +142,24 @@ public class ScryfallApi {
 					return null;
 				}
 
-				return GSON.fromJson(new InputStreamReader(new ReportingWrapper(connection.getInputStream(), reporter), StandardCharsets.UTF_8), type);
+				InputStream input = connection.getInputStream();
+				if (reporter != null) {
+					input = new ReportingWrapper(input, reporter);
+				}
+
+				if ("gzip".equals(connection.getContentEncoding())) {
+					input = new GZIPInputStream(input);
+				}
+
+				return GSON.fromJson(new InputStreamReader(input, StandardCharsets.UTF_8), type);
 			} catch (IOException e) {
 				return null;
 			}
 		}, delay, TimeUnit.MILLISECONDS);
 	}
 
-	public <T> T requestJson(URL url, Type type, LongConsumer report) {
-		ScheduledFuture<T> downloadTask = requestJsonAsync(url, type, report);
+	public <T> T requestJson(URL url, Type type, LongConsumer reporter) {
+		ScheduledFuture<T> downloadTask = requestJsonAsync(url, type, reporter);
 
 		while (!downloadTask.isDone()) {
 			try {
@@ -172,8 +183,8 @@ public class ScryfallApi {
 		return requestJson(url, type, null);
 	}
 
-	public <T> T requestJson(URL url, Class<T> cls, LongConsumer report) {
-		return requestJson(url, (Type) cls, report);
+	public <T> T requestJson(URL url, Class<T> cls, LongConsumer reporter) {
+		return requestJson(url, (Type) cls, reporter);
 	}
 
 	public <T> T requestJson(URL url, Class<T> cls) {
@@ -195,8 +206,7 @@ public class ScryfallApi {
 		if (defaultCards == null) throw new AssertionError(new IOException("Couldn't find scryfall bulk default card data URI!"));
 
 		try {
-			return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(),
-					progress == null ? null : x -> progress.accept((double) x / (double) defaultCards.compressedSize));
+			return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(), l -> progress.accept((double) l / defaultCards.compressedSize));
 		} catch (MalformedURLException e) {
 			throw new AssertionError(e);
 		}

@@ -122,7 +122,7 @@ public class ScryfallDataSource implements DataSource {
 		}
 		writer.endObject();
 
-		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(null);
+		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(d -> progress.accept(0.5 * d));
 
 		writer.name("printings");
 		writer.beginObject();
@@ -167,7 +167,7 @@ public class ScryfallDataSource implements DataSource {
 
 			if (progress != null) {
 				++statusCounter;
-				progress.accept((double) statusCounter / (double) cards.size());
+				progress.accept(0.5 + 0.5 * (double) statusCounter / (double) cards.size());
 			}
 		}
 		writer.endObject();
