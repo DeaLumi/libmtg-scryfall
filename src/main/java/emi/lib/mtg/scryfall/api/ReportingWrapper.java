@@ -79,7 +79,6 @@ class ReportingWrapper extends InputStream {
 
 	@Override
 	public int read() throws IOException {
-		System.err.println("READ");
 		int x = underlying.read();
 		if (x != -1) move(1);
 		return x;

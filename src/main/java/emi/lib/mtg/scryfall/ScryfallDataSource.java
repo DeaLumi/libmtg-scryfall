@@ -35,8 +35,6 @@ import java.util.zip.GZIPOutputStream;
 public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
 
-	private static final Path DATA_FILE = Paths.get("data", "scryfall", "data.json.gz");
-
 	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
 			GameFormat.Duel,
 			GameFormat.OldSchool,
@@ -94,12 +92,12 @@ public class ScryfallDataSource implements DataSource {
 		return sets.get(code);
 	}
 
-	@Override
-	public boolean update(DoubleConsumer progress) throws IOException {
-		if (!Files.exists(DATA_FILE.getParent())) {
-			Files.createDirectories(DATA_FILE.getParent());
-		}
+	private Path dataFile(Path dataDir) {
+		return dataDir.resolve("scryfall-data.json.gz");
+	}
 
+	@Override
+	public boolean update(Path dataDir, DoubleConsumer progress) throws IOException {
 		ScryfallApi api = new ScryfallApi();
 		List<emi.lib.mtg.scryfall.api.Set> sets = api.sets();
 		Set<String> droppedSets = new HashSet<>();
@@ -175,7 +173,7 @@ public class ScryfallDataSource implements DataSource {
 		writer.endObject();
 		writer.close();
 
-		Files.copy(tmp, DATA_FILE, StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(tmp, dataFile(dataDir), StandardCopyOption.REPLACE_EXISTING);
 		Files.delete(tmp);
 
 		System.gc();
@@ -185,7 +183,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	@Override
-	public boolean needsUpdate() {
+	public boolean needsUpdate(Path dataDir) {
 		try {
 			Instant ref = Instant.now().minusMillis(UPDATE_INTERVAL);
 			Instant version = Files.getLastModifiedTime(getJarPath()).toInstant();
@@ -193,10 +191,10 @@ public class ScryfallDataSource implements DataSource {
 				ref = version;
 			}
 
-			return !Files.exists(DATA_FILE) ||
-					ref.isAfter(Files.getLastModifiedTime(DATA_FILE).toInstant());
+			return !Files.exists(dataFile(dataDir)) ||
+					ref.isAfter(Files.getLastModifiedTime(dataFile(dataDir)).toInstant());
 		} catch (IOException ioe) {
-			System.err.println(String.format("Unable to check %s for freshness -- please update Scryfall data.", DATA_FILE.toString()));
+			System.err.println(String.format("Unable to check %s for freshness -- please update Scryfall data.", dataFile(dataDir).toString()));
 			ioe.printStackTrace();
 			return true;
 		}
@@ -351,12 +349,12 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	@Override
-	public void loadData(DoubleConsumer progress) throws IOException {
+	public boolean loadData(Path dataDir, DoubleConsumer progress) throws IOException {
 		this.cards.clear();
 		this.printings.clear();
 		this.sets.clear();
 
-		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(DATA_FILE)), StandardCharsets.UTF_8));
+		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(dataFile(dataDir))), StandardCharsets.UTF_8));
 		reader.beginObject();
 
 		expect(reader.nextName(), "sets");
@@ -412,23 +410,25 @@ public class ScryfallDataSource implements DataSource {
 		} catch (InterruptedException e) {
 			throw new IOException("Interrupted while processing cards", e);
 		}
+
+		return true;
 	}
 
 	public static void main(String[] args) throws IOException {
-		System.in.read();
+		Path wd = Paths.get("data");
 
 		long start = System.nanoTime();
 		ScryfallDataSource dataSource = new ScryfallDataSource();
 
-		if (dataSource.needsUpdate()) {
-			dataSource.update(null);
+		if (dataSource.needsUpdate(wd)) {
+			dataSource.update(wd, null);
 		}
 
 		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println("Begin loadData()");
 		start = System.nanoTime();
-		dataSource.loadData(null);
+		dataSource.loadData(wd, null);
 		System.out.println(String.format("loadData() took %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
