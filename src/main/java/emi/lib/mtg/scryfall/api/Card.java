@@ -3,6 +3,7 @@ package emi.lib.mtg.scryfall.api;
 import emi.lib.mtg.scryfall.api.enums.*;
 
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,4 +111,5 @@ public class Card extends ApiObject {
 	public String usd, eur;
 	public Map<String, URL> purchaseUris;
 	public Map<String, URL> relatedUris;
+	public LocalDate releasedAt;
 }

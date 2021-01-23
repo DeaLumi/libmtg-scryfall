@@ -4,6 +4,7 @@ import emi.lib.mtg.Card;
 import emi.lib.mtg.characteristic.CardRarity;
 import emi.lib.mtg.scryfall.util.MirrorMap;
 
+import java.time.LocalDate;
 import java.util.*;
 
 class ScryfallPrinting implements Card.Printing {
@@ -132,6 +133,11 @@ class ScryfallPrinting implements Card.Printing {
 	@Override
 	public boolean promo() {
 		return cardJson.promo;
+	}
+
+	@Override
+	public LocalDate releaseDate() {
+		return cardJson.releasedAt;
 	}
 
 	@Override
