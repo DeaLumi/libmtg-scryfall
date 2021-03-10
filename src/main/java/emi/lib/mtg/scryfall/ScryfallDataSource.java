@@ -421,19 +421,27 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallDataSource dataSource = new ScryfallDataSource();
 
 		if (dataSource.needsUpdate(wd)) {
-			dataSource.update(wd, null);
+			dataSource.update(wd, x -> {});
 		}
 
 		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println("Begin loadData()");
 		start = System.nanoTime();
-		dataSource.loadData(wd, null);
+		dataSource.loadData(wd, x -> {});
 		System.out.println(String.format("loadData() took %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
 
 		System.in.read();
+
+		System.out.println("Checking cards for bad data...");
+
+		for (Card.Printing pr : dataSource.printings()) {
+			if (pr.rarity() == null) {
+				System.out.println(String.format("Card %s (%s printing) has no rarity!", pr.card().fullName(), pr.set().name()));
+			}
+		}
 
 		ScryfallApi api = new ScryfallApi();
 		Catalog cardNames = api.requestJson(new URL("https://api.scryfall.com/catalog/card-names"), Catalog.class);

@@ -7,6 +7,8 @@ public enum Rarity implements ApiEnum {
 	Uncommon (CardRarity.Uncommon),
 	Rare (CardRarity.Rare),
 	Mythic (CardRarity.MythicRare),
+	Bonus (CardRarity.MythicRare),
+	Special (CardRarity.Special),
 	Unrecognized (null);
 
 	public final CardRarity libMtgRarity;
