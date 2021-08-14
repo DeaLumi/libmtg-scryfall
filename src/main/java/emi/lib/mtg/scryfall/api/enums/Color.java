@@ -6,7 +6,7 @@ public enum Color implements ApiEnum {
 	Black (emi.lib.mtg.characteristic.Color.BLACK),
 	Red (emi.lib.mtg.characteristic.Color.RED),
 	Green (emi.lib.mtg.characteristic.Color.GREEN),
-	Unrecognized (null,"?");
+	Unrecognized (null, "unrecognized");
 
 	private final String serialized;
 	public final emi.lib.mtg.characteristic.Color libMtgColor;
