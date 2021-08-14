@@ -132,33 +132,29 @@ public class ScryfallApi {
 		}
 
 		return executor.schedule(() -> {
-			try {
-				HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-				connection.setRequestProperty("Accept-Encoding", "gzip");
+			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+			connection.setRequestProperty("Accept-Encoding", "gzip");
 
-				if (connection.getResponseCode() != 200) {
-					// TODO: Handle errors...
-					System.err.println("HTTP request for " + url.toString() + " failed: " + connection.getResponseMessage());
-					return null;
-				}
-
-				InputStream input = connection.getInputStream();
-				if (reporter != null) {
-					input = new ReportingWrapper(input, reporter);
-				}
-
-				if ("gzip".equals(connection.getContentEncoding())) {
-					input = new GZIPInputStream(input);
-				}
-
-				return GSON.fromJson(new InputStreamReader(input, StandardCharsets.UTF_8), type);
-			} catch (IOException e) {
+			if (connection.getResponseCode() != 200) {
+				// TODO: Handle errors...
+				System.err.println("HTTP request for " + url.toString() + " failed: " + connection.getResponseMessage());
 				return null;
 			}
+
+			InputStream input = connection.getInputStream();
+			if (reporter != null) {
+				input = new ReportingWrapper(input, reporter);
+			}
+
+			if ("gzip".equals(connection.getContentEncoding())) {
+				input = new GZIPInputStream(input);
+			}
+
+			return GSON.fromJson(new InputStreamReader(input, StandardCharsets.UTF_8), type);
 		}, delay, TimeUnit.MILLISECONDS);
 	}
 
-	public <T> T requestJson(URL url, Type type, LongConsumer reporter) {
+	public <T> T requestJson(URL url, Type type, LongConsumer reporter) throws IOException {
 		ScheduledFuture<T> downloadTask = requestJsonAsync(url, type, reporter);
 
 		while (!downloadTask.isDone()) {
@@ -174,55 +170,46 @@ public class ScryfallApi {
 		} catch (InterruptedException e) {
 			return null;
 		} catch (ExecutionException e) {
-			e.printStackTrace();
-			return null;
+			throw new IOException(e.getCause());
 		}
 	}
 
-	public <T> T requestJson(URL url, Type type) {
+	public <T> T requestJson(URL url, Type type) throws IOException {
 		return requestJson(url, type, null);
 	}
 
-	public <T> T requestJson(URL url, Class<T> cls, LongConsumer reporter) {
+	public <T> T requestJson(URL url, Class<T> cls, LongConsumer reporter) throws IOException {
 		return requestJson(url, (Type) cls, reporter);
 	}
 
-	public <T> T requestJson(URL url, Class<T> cls) {
+	public <T> T requestJson(URL url, Class<T> cls) throws IOException {
 		return requestJson(url, cls, null);
 	}
 
-	public PagedList<Set> sets() {
+	public PagedList<Set> sets() throws IOException {
 		return new PagedList<>(this, requestJson(URL_SETS, ApiObjectList.SetList.class, null));
 	}
 
-	public BulkDataList bulkData() {
+	public BulkDataList bulkData() throws IOException {
 		return requestJson(URL_BULK, BulkDataList.class, null);
 	}
 
-	public List<Card> defaultCardsBulk(DoubleConsumer progress) {
+	public List<Card> defaultCardsBulk(DoubleConsumer progress) throws IOException {
 		BulkDataList bulk = bulkData();
 		BulkDataList.Entry defaultCards = bulk.data.stream().filter(x -> x.type == BulkDataType.DefaultCards).findAny().orElse(null);
 
 		if (defaultCards == null) throw new AssertionError(new IOException("Couldn't find scryfall bulk default card data URI!"));
 
-		try {
-			return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(), l -> progress.accept((double) l / defaultCards.compressedSize));
-		} catch (MalformedURLException e) {
-			throw new AssertionError(e);
-		}
+		return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(), l -> progress.accept((double) l / defaultCards.compressedSize));
 	}
 
-	public PagedList<Card> query(String syntax) {
+	public PagedList<Card> query(String syntax) throws IOException {
 		return query(syntax, "prints", false, false);
 	}
 
-	public PagedList<Card> query(String syntax, String unique, boolean include_extras, boolean include_multilingual) {
-		try {
-			String query = URLEncoder.encode(syntax, "UTF-8");
-			return new PagedList<>(this, requestJson(new URL(URL_BASE, String.format("/cards/search?q=%s&unique=%s&include_extras=%s&include_multilingual=%s", query, unique, Boolean.toString(include_extras), Boolean.toString(include_multilingual))), ApiObjectList.CardList.class));
-		} catch (MalformedURLException | UnsupportedEncodingException e) {
-			throw new AssertionError(e);
-		}
+	public PagedList<Card> query(String syntax, String unique, boolean include_extras, boolean include_multilingual) throws IOException {
+		String query = URLEncoder.encode(syntax, "UTF-8");
+		return new PagedList<>(this, requestJson(new URL(URL_BASE, String.format("/cards/search?q=%s&unique=%s&include_extras=%s&include_multilingual=%s", query, unique, Boolean.toString(include_extras), Boolean.toString(include_multilingual))), ApiObjectList.CardList.class));
 	}
 
 	public static void main(String[] args) throws IOException {

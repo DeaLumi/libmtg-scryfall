@@ -1,5 +1,6 @@
 package emi.lib.mtg.scryfall.api;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -18,7 +19,7 @@ public class PagedList<T extends ApiObject> extends AbstractList<T> {
 		}
 	}
 
-	private boolean fetchNextPage() {
+	private boolean fetchNextPage() throws IOException {
 		if (!pages.lastEntry().getValue().hasMore) {
 			return false;
 		}
@@ -36,8 +37,12 @@ public class PagedList<T extends ApiObject> extends AbstractList<T> {
 		}
 
 		while (pages.lastKey() + pages.lastEntry().getValue().data.size() <= index) {
-			if (!fetchNextPage()) {
-				throw new NoSuchElementException();
+			try {
+				if (!fetchNextPage()) {
+					throw new NoSuchElementException();
+				}
+			} catch (IOException ioe) {
+				throw new RuntimeException(ioe);
 			}
 		}
 
