@@ -27,6 +27,7 @@ public interface ApiEnum {
 						.collect(Collectors.toMap(e -> ((ApiEnum) e).serialized().toLowerCase(), e -> e));
 
 				assert revMap.containsKey("unrecognized") : "Missing an unrecognized enum value from enum type " + typeToken.toString();
+				T unrecognized = revMap.get("unrecognized");
 
 				return new TypeAdapter<T>() {
 					@Override
@@ -40,18 +41,26 @@ public interface ApiEnum {
 
 					@Override
 					public T read(JsonReader jsonReader) throws IOException {
+						String name;
 						switch (jsonReader.peek()) {
 							case NULL:
 								return null;
 							case NAME:
-								String nextName = jsonReader.nextName().toLowerCase().replace("_", "");
-								return revMap.getOrDefault(nextName, revMap.get("unrecognized"));
+								name = jsonReader.nextName().toLowerCase().replace("_", "");
+								break;
 							case STRING:
-								String next = jsonReader.nextString().toLowerCase().replace("_", "");
-								return revMap.getOrDefault(next, revMap.get("unrecognized"));
+								name = jsonReader.nextString().toLowerCase().replace("_", "");
+								break;
 							default:
 								throw new IOException("Unexpected token");
 						}
+
+						if (!revMap.containsKey(name)) {
+							System.err.println("WARNING: Unrecognized " + typeToken.getRawType().getSimpleName() + " \"" + name + "\"! Errors may ensue!");
+							return unrecognized;
+						}
+
+						return revMap.get(name);
 					}
 				};
 			}
