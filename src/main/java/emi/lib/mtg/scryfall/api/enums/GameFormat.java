@@ -8,7 +8,7 @@ public enum GameFormat implements ApiEnum {
 	Legacy (Format.Legacy),
 	Vintage (Format.Vintage),
 	Commander (Format.Commander),
-	PauperCommander (Format.Commander),
+	PauperCommander (null),
 	Pauper (Format.Pauper),
 	Penny (Format.Penny),
 	Duel (null),
@@ -17,7 +17,7 @@ public enum GameFormat implements ApiEnum {
 	OldSchool (null),
 	Pioneer (Format.Pioneer),
 	Historic (Format.Historic),
-	HistoricBrawl (Format.Brawl),
+	HistoricBrawl (null),
 	Gladiator (null),
 	Premodern (null),
 	Unrecognized (null);
