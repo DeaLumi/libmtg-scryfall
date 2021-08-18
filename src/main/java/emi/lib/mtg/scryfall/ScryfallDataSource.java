@@ -420,7 +420,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	public static void main(String[] args) throws IOException {
-		Path wd = Paths.get("data");
+		Path wd = Paths.get(".");
 
 		long start = System.nanoTime();
 		ScryfallDataSource dataSource = new ScryfallDataSource();
