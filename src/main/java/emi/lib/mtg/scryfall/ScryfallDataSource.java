@@ -233,6 +233,10 @@ public class ScryfallDataSource implements DataSource {
 		}
 
 		switch (card.layout) {
+			default:
+			case Unrecognized:
+				System.err.printf("Warning: Unrecognized frame type for card %s. Treating as a simple card.%n", card.name);
+				// Intentional fallthrough
 			case Normal:
 			case Augment:
 			case Host:
@@ -263,7 +267,7 @@ public class ScryfallDataSource implements DataSource {
 			case Token:
 			case DoubleFacedToken:
 			case Emblem:
-				System.err.println(String.format("Unexpected token or emblem %s in set %s (%s)", card.name, card.setName, card.set));
+				System.err.printf("Unexpected token or emblem %s in set %s (%s)%n", card.name, card.setName, card.set);
 				return;
 		}
 	}
