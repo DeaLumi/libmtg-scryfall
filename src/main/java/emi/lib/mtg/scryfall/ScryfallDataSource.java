@@ -241,6 +241,7 @@ public class ScryfallDataSource implements DataSource {
 			case Scheme:
 			case Vanguard:
 			case Saga:
+			case Class:
 				createSimple(card);
 				return;
 			case Split:
