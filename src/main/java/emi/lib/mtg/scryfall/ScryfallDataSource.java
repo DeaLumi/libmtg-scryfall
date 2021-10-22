@@ -227,7 +227,8 @@ public class ScryfallDataSource implements DataSource {
 		}
 
 		if ("Who // What // When // Where // Why".equals(card.name) || "Smelt // Herd // Saw".equals(card.name)) {
-			card.typeLine = card.typeLine.replaceAll("[/][/] ", "");
+			card.typeLine = card.typeLine.replaceAll(" [/][/] ", " ");
+			card.manaCost = card.manaCost.replaceAll(" [/][/] ", "");
 			createSimple(card);
 			return;
 		}
