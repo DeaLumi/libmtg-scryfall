@@ -91,8 +91,7 @@ public class Card extends ApiObject {
 	public URL scryfallSetUrl;
 	public Map<String, URL> imageUris;
 	public boolean highresImage;
-	public boolean foil;
-	public boolean nonfoil;
+	public List<Finish> finishes;
 	public boolean oversized;
 	public boolean reprint;
 	public boolean digital;
