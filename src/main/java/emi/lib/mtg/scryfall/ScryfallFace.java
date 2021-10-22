@@ -1,10 +1,9 @@
 package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
+import emi.lib.mtg.Mana;
 import emi.lib.mtg.characteristic.CardTypeLine;
 import emi.lib.mtg.characteristic.Color;
-import emi.lib.mtg.characteristic.ManaCost;
-import emi.lib.mtg.characteristic.ManaSymbol;
 import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
 
 import java.util.*;
@@ -19,7 +18,7 @@ class ScryfallFace implements Card.Face {
 	private final emi.lib.mtg.scryfall.api.Card cardJson;
 	private final emi.lib.mtg.scryfall.api.Card.Face faceJson;
 
-	private ManaCost manaCost;
+	private Mana.Value manaCost;
 	private CardTypeLine typeLine;
 
 	private Color.Combination color, colorIndicator, colorIdentity;
@@ -28,8 +27,6 @@ class ScryfallFace implements Card.Face {
 		this.kind = kind;
 		this.cardJson = cardJson;
 		this.faceJson = faceJson;
-
-		this.manaCost();
 	}
 
 	ScryfallFace(Kind kind, emi.lib.mtg.scryfall.api.Card cardJson) {
@@ -89,48 +86,14 @@ class ScryfallFace implements Card.Face {
 	}
 
 	@Override
-	public ManaCost manaCost() {
+	public Mana.Value manaCost() {
 		if (manaCost == null) {
 			final String source = or(faceJson != null ? faceJson.manaCost : cardJson.manaCost, "");
-
-			manaCost = new ManaCost() {
-				private final List<ManaSymbol> symbols;
-				private final double cmc;
-				private final Set<Color> color;
-				private final boolean varies;
-
-				{
-					symbols = Collections.unmodifiableList(ManaSymbol.symbolsIn(source));
-					color = Collections.unmodifiableSet(ManaCost.super.color());
-					varies = ManaCost.super.varies();
-					cmc = ManaCost.super.convertedCost();
-				}
-
-				@Override
-				public Collection<? extends ManaSymbol> symbols() {
-					return symbols;
-				}
-
-				@Override
-				public double convertedCost() {
-					return cmc;
-				}
-
-				@Override
-				public Set<Color> color() {
-					return color;
-				}
-
-				@Override
-				public boolean varies() {
-					return varies;
-				}
-
-				@Override
-				public String toString() {
-					return symbols.stream().sorted().map(ManaSymbol::toString).collect(Collectors.joining());
-				}
-			};
+			try {
+				manaCost = Mana.Value.parse(source);
+			} catch (IllegalArgumentException iae) {
+				throw new IllegalArgumentException("When parsing mana cost of " + cardJson.name + " in set " + cardJson.setName);
+			}
 		}
 
 		return this.manaCost;
