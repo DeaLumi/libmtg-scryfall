@@ -443,11 +443,20 @@ public class ScryfallDataSource implements DataSource {
 
 		System.out.println("Checking cards for bad data...");
 
+		Set<String> cns = new HashSet<>();
+		int missingCn = 0;
 		for (Card.Printing pr : dataSource.printings()) {
 			if (pr.rarity() == null) {
 				System.out.println(String.format("Card %s (%s printing) has no rarity!", pr.card().fullName(), pr.set().name()));
 			}
+			if (pr.collectorNumber() == null) {
+				++missingCn;
+			} else {
+				cns.add(pr.collectorNumber());
+			}
 		}
+		System.out.printf("%d cards are missing collector numbers. The following collector numbers are observed:", missingCn);
+		for (String s : cns) System.out.println(s);
 
 		ScryfallApi api = new ScryfallApi();
 		Catalog cardNames = api.requestJson(new URL("https://api.scryfall.com/catalog/card-names"), Catalog.class);
