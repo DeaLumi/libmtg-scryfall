@@ -22,7 +22,7 @@ class ScryfallFace implements Card.Face {
 	private ManaCost manaCost;
 	private CardTypeLine typeLine;
 
-	private Set<Color> color, colorIndicator, colorIdentity;
+	private Color.Combination color, colorIndicator, colorIdentity;
 
 	ScryfallFace(Kind kind, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
 		this.kind = kind;
@@ -50,15 +50,15 @@ class ScryfallFace implements Card.Face {
 			return;
 		}
 
-		EnumSet<Color> colorIdentity = EnumSet.noneOf(Color.class),
-				color = EnumSet.noneOf(Color.class);
 		switch (this.kind()) {
 			case Flipped:
-				color = Util.mapColor(orEmpty(cardJson.colors));
-				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(cardJson.colorIndicator)));
-				ManaSymbol.symbolsIn(cardJson.oracleText).stream()
-						.map(ManaSymbol::color)
-						.forEach(colorIdentity::addAll);
+				colorIndicator = Util.mapColor(orEmpty(cardJson.colorIndicator));
+				color = Util.mapColor(orEmpty(cardJson.colors))
+						.plus(colorIndicator);
+				colorIdentity = Mana.Symbol.symbolsIn(cardJson.oracleText)
+						.map(Mana.Symbol::color)
+						.collect(Color.Combination.COMBO_COLLECTOR)
+						.plus(color);
 				break;
 
 			case Front:
@@ -67,19 +67,15 @@ class ScryfallFace implements Card.Face {
 			case Right:
 			case Other:
 				// Have to check for faceJson here; meld backsides are still separate Card objects.
-				color = Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors));
-				colorIndicator = Collections.unmodifiableSet(Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator)));
-				ManaSymbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText).stream()
-						.map(ManaSymbol::color)
-						.forEach(colorIdentity::addAll);
+				colorIndicator = Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator));
+				color = Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors))
+						.plus(colorIndicator);
+				colorIdentity = Mana.Symbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText)
+						.map(Mana.Symbol::color)
+						.collect(Color.Combination.COMBO_COLLECTOR)
+						.plus(color);
 				break;
 		}
-
-		color.addAll(colorIndicator);
-		this.color = Collections.unmodifiableSet(color);
-
-		colorIdentity.addAll(color);
-		this.colorIdentity = Collections.unmodifiableSet(colorIdentity);
 	}
 
 	@Override

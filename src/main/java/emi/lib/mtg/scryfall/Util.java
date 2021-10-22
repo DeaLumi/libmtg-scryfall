@@ -24,19 +24,8 @@ class Util {
 		return in != null ? in : Collections.emptySet();
 	}
 
-	static EnumSet<Color> mapColor(Set<emi.lib.mtg.scryfall.api.enums.Color> apiColors) {
-		EnumSet<Color> out = EnumSet.noneOf(Color.class);
-
-		if (apiColors == null) {
-			return out;
-		}
-
-		for (emi.lib.mtg.scryfall.api.enums.Color color : apiColors) {
-			assert color.libMtgColor != null : "Bwuh?";
-			out.add(color.libMtgColor);
-		}
-
-		return out;
+	static Color.Combination mapColor(Set<emi.lib.mtg.scryfall.api.enums.Color> apiColors) {
+		return apiColors == null ? Color.Combination.Empty : apiColors.stream().map(c -> c.libMtgColor).collect(Color.Combination.COLOR_COLLECTOR);
 	}
 
 	static CardRarity mapRarity(emi.lib.mtg.scryfall.api.Card card) {
