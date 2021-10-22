@@ -1,11 +1,11 @@
 package emi.lib.mtg.scryfall.api.enums;
 
 public enum Color implements ApiEnum {
-	White (emi.lib.mtg.characteristic.Color.WHITE),
-	Blue (emi.lib.mtg.characteristic.Color.BLUE, "U"),
-	Black (emi.lib.mtg.characteristic.Color.BLACK),
-	Red (emi.lib.mtg.characteristic.Color.RED),
-	Green (emi.lib.mtg.characteristic.Color.GREEN),
+	White (emi.lib.mtg.characteristic.Color.White),
+	Blue (emi.lib.mtg.characteristic.Color.Blue, "U"),
+	Black (emi.lib.mtg.characteristic.Color.Black),
+	Red (emi.lib.mtg.characteristic.Color.Red),
+	Green (emi.lib.mtg.characteristic.Color.Green),
 	Unrecognized (null, "unrecognized");
 
 	private final String serialized;
