@@ -141,7 +141,7 @@ class ScryfallFace implements Card.Face {
 	}
 
 	@Override
-	public double convertedManaCost() {
+	public double manaValue() {
 		return cardJson.cmc != null ? cardJson.cmc : 0.0;
 	}
 
