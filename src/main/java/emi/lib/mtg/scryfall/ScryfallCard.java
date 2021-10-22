@@ -14,7 +14,7 @@ class ScryfallCard implements Card {
 	final MirrorMap<Face.Kind, ScryfallFace> faces;
 	final MirrorMap<UUID, ScryfallPrinting> printings;
 	final EnumMap<Format, Legality> legalities;
-	final Set<Color> colorIdentity;
+	final Color.Combination colorIdentity;
 
 	ScryfallCard(emi.lib.mtg.scryfall.api.Card jsonCard) {
 		this.name = jsonCard.name;
@@ -65,7 +65,7 @@ class ScryfallCard implements Card {
 	}
 
 	@Override
-	public Set<Color> colorIdentity() {
+	public Color.Combination colorIdentity() {
 		return this.colorIdentity;
 	}
 }
