@@ -188,6 +188,11 @@ class ScryfallPrinting implements Card.Printing {
 	}
 
 	@Override
+	public String toString() {
+		return String.format("%s (%s) %s", card.name(), set.code().toUpperCase(), collectorNumber());
+	}
+
+	@Override
 	public UUID id() {
 		return cardJson.id;
 	}
