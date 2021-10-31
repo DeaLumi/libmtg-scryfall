@@ -5,9 +5,9 @@ import emi.lib.mtg.Mana;
 import emi.lib.mtg.characteristic.CardTypeLine;
 import emi.lib.mtg.characteristic.Color;
 import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
+import emi.lib.mtg.game.ability.Abilities;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import static emi.lib.mtg.scryfall.Util.or;
 import static emi.lib.mtg.scryfall.Util.orEmpty;
@@ -20,6 +20,7 @@ class ScryfallFace implements Card.Face {
 
 	private Mana.Value manaCost;
 	private CardTypeLine typeLine;
+	private Abilities abilities;
 
 	private Color.Combination color, colorIndicator, colorIdentity;
 
@@ -165,5 +166,14 @@ class ScryfallFace implements Card.Face {
 	@Override
 	public String lifeModifier() {
 		return or(cardJson.lifeModifier, "");
+	}
+
+	@Override
+	public Abilities abilities() {
+		if (abilities == null) {
+			abilities = new Abilities.DefaultAbilities(this);
+		}
+
+		return abilities;
 	}
 }
