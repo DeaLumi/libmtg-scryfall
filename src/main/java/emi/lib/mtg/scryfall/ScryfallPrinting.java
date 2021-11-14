@@ -196,4 +196,14 @@ class ScryfallPrinting implements Card.Printing {
 	public UUID id() {
 		return cardJson.id;
 	}
+
+	@Override
+	public int hashCode() {
+		return cardJson.id.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof ScryfallPrinting && (cardJson.id.equals(((ScryfallPrinting) obj).cardJson.id));
+	}
 }

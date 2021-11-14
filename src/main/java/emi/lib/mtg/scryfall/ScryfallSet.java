@@ -53,4 +53,9 @@ class ScryfallSet implements Set {
 	public Card.Printing printing(UUID id) {
 		return printings.get(id);
 	}
+
+	@Override
+	public String toString() {
+		return name() + " (" + code().toUpperCase() + ")";
+	}
 }
