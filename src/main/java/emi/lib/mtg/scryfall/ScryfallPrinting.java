@@ -1,7 +1,7 @@
 package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
-import emi.lib.mtg.characteristic.CardRarity;
+import emi.lib.mtg.enums.Rarity;
 import emi.lib.mtg.scryfall.util.MirrorMap;
 
 import java.time.LocalDate;
@@ -134,7 +134,7 @@ class ScryfallPrinting implements Card.Printing {
 	}
 
 	@Override
-	public CardRarity rarity() {
+	public Rarity rarity() {
 		return Util.mapRarity(cardJson);
 	}
 

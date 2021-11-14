@@ -1,19 +1,17 @@
 package emi.lib.mtg.scryfall.api.enums;
 
-import emi.lib.mtg.characteristic.CardRarity;
-
 public enum Rarity implements ApiEnum {
-	Common (CardRarity.Common),
-	Uncommon (CardRarity.Uncommon),
-	Rare (CardRarity.Rare),
-	Mythic (CardRarity.MythicRare),
-	Bonus (CardRarity.Special),
-	Special (CardRarity.Special),
+	Common (emi.lib.mtg.enums.Rarity.Common),
+	Uncommon (emi.lib.mtg.enums.Rarity.Uncommon),
+	Rare (emi.lib.mtg.enums.Rarity.Rare),
+	Mythic (emi.lib.mtg.enums.Rarity.MythicRare),
+	Bonus (emi.lib.mtg.enums.Rarity.Special),
+	Special (emi.lib.mtg.enums.Rarity.Special),
 	Unrecognized (null);
 
-	public final CardRarity libMtgRarity;
+	public final emi.lib.mtg.enums.Rarity libMtgRarity;
 
-	private Rarity(CardRarity libMtgRarity) {
+	private Rarity(emi.lib.mtg.enums.Rarity libMtgRarity) {
 		this.libMtgRarity = libMtgRarity;
 	}
 

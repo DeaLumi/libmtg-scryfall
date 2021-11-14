@@ -1,7 +1,7 @@
 package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
-import emi.lib.mtg.characteristic.Color;
+import emi.lib.mtg.enums.Color;
 import emi.lib.mtg.game.Format;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.util.MirrorMap;

@@ -2,9 +2,8 @@ package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
 import emi.lib.mtg.Mana;
-import emi.lib.mtg.characteristic.CardTypeLine;
-import emi.lib.mtg.characteristic.Color;
-import emi.lib.mtg.characteristic.impl.BasicCardTypeLine;
+import emi.lib.mtg.enums.Color;
+import emi.lib.mtg.TypeLine;
 import emi.lib.mtg.game.ability.Abilities;
 
 import java.util.Set;
@@ -19,7 +18,7 @@ class ScryfallFace implements Card.Face {
 	private final emi.lib.mtg.scryfall.api.Card.Face faceJson;
 
 	private Mana.Value manaCost;
-	private CardTypeLine typeLine;
+	private TypeLine typeLine;
 	private Abilities abilities;
 
 	private Color.Combination color, colorIndicator, colorIdentity;
@@ -106,25 +105,25 @@ class ScryfallFace implements Card.Face {
 	}
 
 	@Override
-	public Set<Color> colorIndicator() {
+	public Color.Combination colorIndicator() {
 		initColor();
 		return colorIndicator;
 	}
 
 	@Override
-	public Set<Color> color() {
+	public Color.Combination color() {
 		initColor();
 		return color;
 	}
 
 	@Override
-	public Set<Color> colorIdentity() {
+	public Color.Combination colorIdentity() {
 		initColor();
 		return colorIdentity;
 	}
 
 	@Override
-	public CardTypeLine type() {
+	public TypeLine type() {
 		if (typeLine == null) {
 			String typeLine = cardJson.typeLine;
 
@@ -132,7 +131,7 @@ class ScryfallFace implements Card.Face {
 				typeLine = faceJson.typeLine;
 			}
 
-			this.typeLine = BasicCardTypeLine.parse(typeLine);
+			this.typeLine = TypeLine.Basic.parse(typeLine);
 		}
 
 		return typeLine;
@@ -144,17 +143,17 @@ class ScryfallFace implements Card.Face {
 	}
 
 	@Override
-	public String power() {
+	public String printedPower() {
 		return or(faceJson != null ? faceJson.power : cardJson.power, "");
 	}
 
 	@Override
-	public String toughness() {
+	public String printedToughness() {
 		return or(faceJson != null ? faceJson.toughness : cardJson.toughness, "");
 	}
 
 	@Override
-	public String loyalty() {
+	public String printedLoyalty() {
 		return or(cardJson.loyalty, "");
 	}
 

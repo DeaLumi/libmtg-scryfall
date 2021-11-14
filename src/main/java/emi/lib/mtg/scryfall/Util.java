@@ -1,10 +1,9 @@
 package emi.lib.mtg.scryfall;
 
-import emi.lib.mtg.characteristic.CardRarity;
-import emi.lib.mtg.characteristic.Color;
+import emi.lib.mtg.enums.Rarity;
+import emi.lib.mtg.enums.Color;
 
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.Set;
 
 class Util {
@@ -28,9 +27,9 @@ class Util {
 		return apiColors == null ? Color.Combination.Empty : apiColors.stream().map(c -> c.libMtgColor).collect(Color.Combination.COLOR_COLLECTOR);
 	}
 
-	static CardRarity mapRarity(emi.lib.mtg.scryfall.api.Card card) {
+	static Rarity mapRarity(emi.lib.mtg.scryfall.api.Card card) {
 		if (card.typeLine != null && card.typeLine.contains("Basic Land")) {
-			return CardRarity.BasicLand;
+			return Rarity.BasicLand;
 		}
 
 		assert card.rarity.libMtgRarity != null : "The rarity of card " + card.name + " was unrecognized.";

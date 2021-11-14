@@ -30,6 +30,11 @@ class ScryfallSet implements Set {
 	}
 
 	@Override
+	public Type type() {
+		return setJson.setType.libmtgType;
+	}
+
+	@Override
 	public LocalDate releaseDate() {
 		return setJson.releasedAt;
 	}
