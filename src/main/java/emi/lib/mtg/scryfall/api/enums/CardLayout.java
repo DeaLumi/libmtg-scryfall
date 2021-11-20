@@ -20,6 +20,7 @@ public enum CardLayout implements ApiEnum {
 	ArtSeries,
 	ModalDFC,
 	Class,
+	ReversibleCard,
 	Unrecognized;
 
 	@Override

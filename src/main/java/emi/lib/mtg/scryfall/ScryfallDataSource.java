@@ -249,6 +249,9 @@ public class ScryfallDataSource implements DataSource {
 			case Class:
 				createSimple(card);
 				return;
+			case ReversibleCard:
+				createReversible(card);
+				return;
 			case Split:
 				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Left, emi.lib.mtg.Card.Face.Kind.Right);
 				return;
@@ -280,6 +283,22 @@ public class ScryfallDataSource implements DataSource {
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, null));
+
+		set.printings.put(print.id(), print);
+		printings.put(print.id(), print);
+	}
+
+	private void createReversible(emi.lib.mtg.scryfall.api.Card jsonCard) {
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
+		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(Card.Face.Kind.Front, jsonCard, jsonCard.cardFaces.get(0)));
+		ScryfallSet set = sets.get(jsonCard.set);
+
+		// TODO: This needs to be revised later. First, I need to fix libmtg to handle multiple faces of the same kind. Then this should iterate over all cardFaces.
+		// I know, I know; three faces on the same cardboard? But I don't make the rules. I just try desperately to keep up with them...
+		// Also see above -- the front face is taken from the first face ONLY.
+		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(0)));
+		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Other, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(1)));
 
 		set.printings.put(print.id(), print);
 		printings.put(print.id(), print);
