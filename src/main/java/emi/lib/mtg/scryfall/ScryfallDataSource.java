@@ -89,7 +89,7 @@ public class ScryfallDataSource implements DataSource {
 
 	@Override
 	public emi.lib.mtg.Set set(String code) {
-		return sets.get(code);
+		return sets.get(code.toLowerCase());
 	}
 
 	private Path dataFile(Path dataDir) {
