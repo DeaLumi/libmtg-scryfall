@@ -464,11 +464,26 @@ public class ScryfallDataSource implements DataSource {
 			dataSource.update(wd, x -> {});
 		}
 
+		DoubleConsumer loadProfiler = pct -> {
+			long max = Runtime.getRuntime().maxMemory();
+			long curLimit = Runtime.getRuntime().totalMemory();
+			long free = Runtime.getRuntime().freeMemory();
+			long used = curLimit - free;
+
+			System.out.printf("%.2f%%: max = %.3f MB, curLimit = %.3f MB, used = %.3f MB\n", pct * 100.0, max / 1024.0 / 1024.0, curLimit / 1024.0 / 1024.0, used / 1024.0 / 1024.0);
+		};
+
 		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println("Begin loadData()");
 		start = System.nanoTime();
-		dataSource.loadData(wd, x -> {});
+		System.gc();
+		System.gc();
+		loadProfiler.accept(-0.01);
+		dataSource.loadData(wd, loadProfiler);
+		System.gc();
+		System.gc();
+		loadProfiler.accept(1.01);
 		System.out.println(String.format("loadData() took %.2f seconds", (System.nanoTime() - start) / 1e9));
 
 		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
