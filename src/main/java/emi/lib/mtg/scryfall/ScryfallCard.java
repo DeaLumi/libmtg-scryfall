@@ -75,4 +75,9 @@ class ScryfallCard implements Card {
 	public Color.Combination colorIdentity() {
 		return this.colorIdentity;
 	}
+
+	@Override
+	public String toString() {
+		return name();
+	}
 }
