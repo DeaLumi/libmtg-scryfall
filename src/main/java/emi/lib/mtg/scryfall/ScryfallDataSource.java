@@ -494,18 +494,39 @@ public class ScryfallDataSource implements DataSource {
 
 		int missingCn = 0;
 		for (Card.Printing pr : dataSource.printings()) {
-			if (pr.rarity() == null) {
-				System.out.println(String.format("Card %s (%s printing) has no rarity!", pr.card().fullName(), pr.set().name()));
+			if (pr.set() == null) {
+				System.out.printf("Card %s printing {%s} has no associated set!\n", pr.card().fullName(), pr.id());
 			}
-			if (pr.collectorNumber() == null) {
-				++missingCn;
+			if (pr.rarity() == null) {
+				System.out.printf("Card %s (%s printing) has no rarity!%n", pr.card().fullName(), pr.set().name());
+			}
+			if (pr.collectorNumber() == null || pr.collectorNumber().isEmpty()) {
+				System.out.printf("Card %s printing %s is missing a collector number.\n", pr.card().fullName(), pr.set().code());
 			}
 		}
-		System.out.printf("%d cards are missing collector numbers.", missingCn);
-		System.out.println("The following collector numbers are observed:\n");
+
 		for (emi.lib.mtg.Set set : dataSource.sets()) {
-			System.out.printf("\t%s (%s):\n", set.name(), set.code());
-			set.printings().stream().map(Card.Printing::collectorNumber).sorted(ScryfallPrinting.COLLECTOR_NUMBER_COMPARATOR).distinct().forEach(s -> System.out.printf("\t\t%s\n", s));
+			HashMap<String, Card.Printing> cns = new HashMap<>();
+			for (Card.Printing pr : set.printings()) {
+				if (cns.containsKey(pr.collectorNumber())) {
+					System.out.printf("! Set %s printing %s has the same collector number as %s!\n", set, pr, cns.get(pr.collectorNumber()));
+				} else {
+					cns.put(pr.collectorNumber(), pr);
+				}
+			}
+		}
+
+		for (emi.lib.mtg.Card card : dataSource.cards()) {
+			HashMap<String, Card.Printing> cns = new HashMap<>();
+			for (Card.Printing pr : card.printings()) {
+				if (pr.set() == null) continue;
+
+				if (cns.containsKey(pr.set().code() + " " + pr.collectorNumber())) {
+					System.out.printf("! Card %s printing %s has the same collector number as %s!\n", card, pr, cns.get(pr.set().code() + " " + pr.collectorNumber()));
+				} else {
+					cns.put(pr.set().code() + " " + pr.collectorNumber(), pr);
+				}
+			}
 		}
 
 		ScryfallApi api = new ScryfallApi();
