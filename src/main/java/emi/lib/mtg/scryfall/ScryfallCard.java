@@ -13,6 +13,7 @@ class ScryfallCard implements Card {
 
 	final MirrorMap<Face.Kind, ScryfallFace> faces;
 	final MirrorMap<UUID, ScryfallPrinting> printings;
+	final Map<String, ScryfallPrinting> printingsByCn;
 	final EnumMap<Format, Legality> legalities;
 	final Color.Combination colorIdentity;
 
@@ -20,6 +21,7 @@ class ScryfallCard implements Card {
 		this.name = jsonCard.name;
 		this.faces = new MirrorMap<>(() -> new EnumMap<>(Face.Kind.class));
 		this.printings = new MirrorMap<>(HashMap::new);
+		this.printingsByCn = new HashMap<>();
 
 		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
 		this.legalities = new EnumMap<>(Format.class);
@@ -50,6 +52,11 @@ class ScryfallCard implements Card {
 	@Override
 	public ScryfallPrinting printing(UUID id) {
 		return printings.get(id);
+	}
+
+	@Override
+	public Printing printing(String setCode, String collectorNumber) {
+		return printingsByCn.get(Util.cardPrintingKey(setCode, collectorNumber));
 	}
 
 	// Scryfall reports flip cards by full name here for some reason.

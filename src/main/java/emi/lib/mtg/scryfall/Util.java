@@ -35,4 +35,8 @@ class Util {
 		assert card.rarity.libMtgRarity != null : "The rarity of card " + card.name + " was unrecognized.";
 		return card.rarity.libMtgRarity;
 	}
+
+	static String cardPrintingKey(String setCode, String collectorNumber) {
+		return setCode.toUpperCase() + " " + collectorNumber;
+	}
 }

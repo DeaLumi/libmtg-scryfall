@@ -6,6 +6,7 @@ import emi.lib.mtg.scryfall.util.MirrorMap;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 class ScryfallSet implements Set {
@@ -13,10 +14,12 @@ class ScryfallSet implements Set {
 	private final emi.lib.mtg.scryfall.api.Set setJson;
 
 	final MirrorMap<UUID, ScryfallPrinting> printings;
+	final Map<String, ScryfallPrinting> printingsByCn;
 
 	ScryfallSet(emi.lib.mtg.scryfall.api.Set setJson) {
 		this.setJson = setJson;
 		this.printings = new MirrorMap<>(HashMap::new);
+		this.printingsByCn = new HashMap<>();
 	}
 
 	@Override
@@ -52,6 +55,11 @@ class ScryfallSet implements Set {
 	@Override
 	public Card.Printing printing(UUID id) {
 		return printings.get(id);
+	}
+
+	@Override
+	public Card.Printing printing(String collectorNumber) {
+		return printingsByCn.get(collectorNumber);
 	}
 
 	@Override

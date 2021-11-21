@@ -282,9 +282,11 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallSet set = sets.get(jsonCard.set);
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, null));
 
 		set.printings.put(print.id(), print);
+		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -297,10 +299,12 @@ public class ScryfallDataSource implements DataSource {
 		// I know, I know; three faces on the same cardboard? But I don't make the rules. I just try desperately to keep up with them...
 		// Also see above -- the front face is taken from the first face ONLY.
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(0)));
 		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Other, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(1)));
 
 		set.printings.put(print.id(), print);
+		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -312,11 +316,13 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallFace second = card.faces.computeIfAbsent(secondKind, k -> new ScryfallFace(secondKind, jsonCard, jsonCard.cardFaces.get(1)));
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
+		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
 
 		ScryfallPrintedFace firstPrint = print.faces.computeIfAbsent(firstKind, k -> new ScryfallPrintedFace(print, first, jsonCard, jsonCard.cardFaces.get(0)));
 		ScryfallPrintedFace secondPrint = print.faces.computeIfAbsent(secondKind, k -> new ScryfallPrintedFace(print, second, jsonCard, jsonCard.cardFaces.get(1)));
 
 		set.printings.put(print.id(), print);
+		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
 	}
 
@@ -331,10 +337,12 @@ public class ScryfallDataSource implements DataSource {
 		assert set == backSet;
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonFront.id, id -> new ScryfallPrinting(set, card, jsonFront));
+		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonFront, null));
 		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(print, back, jsonBack, null));
 
 		set.printings.put(print.id(), print);
+		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
 
 		return print;
