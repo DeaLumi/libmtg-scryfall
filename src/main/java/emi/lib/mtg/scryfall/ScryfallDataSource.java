@@ -277,9 +277,14 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	private void createSimple(emi.lib.mtg.scryfall.api.Card jsonCard) {
+		ScryfallSet set = sets.get(jsonCard.set);
+		if (set == null) {
+			System.err.printf("Skipping %s %s %s as the ScryfallSet is null...\n", jsonCard.name, jsonCard.set, jsonCard.collectorNumber);
+			return;
+		}
+
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
 		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(jsonCard));
-		ScryfallSet set = sets.get(jsonCard.set);
 
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
 		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
@@ -439,7 +444,9 @@ public class ScryfallDataSource implements DataSource {
 
 		processor.shutdown();
 		try {
-			processor.awaitTermination(1, TimeUnit.MINUTES);
+			if (!processor.awaitTermination(1, TimeUnit.MINUTES)) {
+				throw new IOException("Unable to process all cards!");
+			}
 		} catch (InterruptedException e) {
 			throw new IOException("Interrupted while processing cards", e);
 		}
