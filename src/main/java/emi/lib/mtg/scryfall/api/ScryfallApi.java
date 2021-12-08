@@ -17,6 +17,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -221,7 +223,7 @@ public class ScryfallApi {
 		System.out.println();
 		System.out.println(String.format("Took %.2f seconds to download %d cards.", (System.nanoTime() - start) / 1e9, results.size()));
 
-		try (FileWriter writer = new FileWriter("standard.json")) {
+		try (Writer writer = Files.newBufferedWriter(new File("standard.json").toPath())) {
 			GSON.toJson(results, new TypeToken<List<Card>>(){}.getType(), writer);
 		}
 	}
