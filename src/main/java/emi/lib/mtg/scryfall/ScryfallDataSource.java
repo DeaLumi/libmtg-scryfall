@@ -296,7 +296,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	private void createReversible(emi.lib.mtg.scryfall.api.Card jsonCard) {
-		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0)), id -> new ScryfallCard(jsonCard));
 		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(Card.Face.Kind.Front, jsonCard, jsonCard.cardFaces.get(0)));
 		ScryfallSet set = sets.get(jsonCard.set);
 
@@ -306,7 +306,7 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
 		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
 		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(0)));
-		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Other, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(1)));
+		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(1)));
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);

@@ -22,6 +22,7 @@ public class ScryfallImageSource implements ImageSource {
 		switch (cardJson.layout) {
 			case Transform:
 			case ModalDFC:
+			case ReversibleCard:
 				assert faceJson != null && faceJson.imageUris != null;
 				return faceJson.imageUris.get(imageUri);
 			default:

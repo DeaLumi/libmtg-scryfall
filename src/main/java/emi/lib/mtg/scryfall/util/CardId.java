@@ -11,6 +11,10 @@ public class CardId {
 		return new CardId(card);
 	}
 
+	public static CardId of(emi.lib.mtg.scryfall.api.Card.Face face) {
+		return new CardId(face);
+	}
+
 	public static CardId of(emi.lib.mtg.scryfall.api.Card front, emi.lib.mtg.scryfall.api.Card back) {
 		return new CardId(front, back);
 	}
@@ -20,6 +24,10 @@ public class CardId {
 	}
 
 	public CardId(emi.lib.mtg.scryfall.api.Card face) {
+		this(face.name + "\n" + face.oracleText);
+	}
+
+	public CardId(emi.lib.mtg.scryfall.api.Card.Face face) {
 		this(face.name + "\n" + face.oracleText);
 	}
 
