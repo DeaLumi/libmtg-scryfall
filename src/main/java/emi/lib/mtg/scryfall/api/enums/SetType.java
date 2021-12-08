@@ -6,7 +6,7 @@ public enum SetType implements ApiEnum {
 	Core (Set.Type.Standard),
 	Expansion (Set.Type.Standard),
 	Masters (Set.Type.Remaster),
-	Masterpiece (Set.Type.Remaster),
+	Masterpiece (Set.Type.Promo),
 	FromTheVault (Set.Type.Remaster),
 	Spellbook (Set.Type.Remaster),
 	PremiumDeck (Set.Type.Precon),
@@ -20,7 +20,7 @@ public enum SetType implements ApiEnum {
 	Funny (Set.Type.Standard),
 	Starter (Set.Type.Standard),
 	Box (Set.Type.Remaster),
-	Promo (Set.Type.Other),
+	Promo (Set.Type.Promo),
 	Token (Set.Type.Other),
 	Memorabilia (Set.Type.Other),
 	Unrecognized (null);
