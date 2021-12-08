@@ -102,7 +102,7 @@ public class ScryfallDataSource implements DataSource {
 		List<emi.lib.mtg.scryfall.api.Set> sets = api.sets();
 		Set<String> droppedSets = new HashSet<>();
 
-		Path tmp = Files.createTempFile("scryfall-data", ".json");
+		Path tmp = Files.createTempFile("scryfall-data", ".json.gz");
 		JsonWriter writer = ScryfallApi.GSON.newJsonWriter(new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(tmp)), StandardCharsets.UTF_8));
 
 		writer.beginObject();
