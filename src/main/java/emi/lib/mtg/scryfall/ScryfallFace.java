@@ -55,7 +55,8 @@ class ScryfallFace implements Card.Face {
 				colorIdentity = Mana.Symbol.symbolsIn(cardJson.oracleText)
 						.map(Mana.Symbol::color)
 						.collect(Color.Combination.COMBO_COLLECTOR)
-						.plus(color);
+						.plus(color)
+						.plus(TypeLine.landColorIdentity(type()));
 				break;
 
 			case Front:
@@ -70,7 +71,8 @@ class ScryfallFace implements Card.Face {
 				colorIdentity = Mana.Symbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText)
 						.map(Mana.Symbol::color)
 						.collect(Color.Combination.COMBO_COLLECTOR)
-						.plus(color);
+						.plus(color)
+						.plus(TypeLine.landColorIdentity(type()));
 				break;
 		}
 	}
