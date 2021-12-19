@@ -20,6 +20,7 @@ public enum GameFormat implements ApiEnum {
 	HistoricBrawl (null),
 	Gladiator (null),
 	Premodern (null),
+	Alchemy (null),
 	Unrecognized (null);
 
 	public final Format libMtgFormat;
