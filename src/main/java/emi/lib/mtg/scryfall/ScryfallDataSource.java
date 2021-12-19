@@ -305,8 +305,8 @@ public class ScryfallDataSource implements DataSource {
 		// Also see above -- the front face is taken from the first face ONLY.
 		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
 		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
-		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(0)));
-		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(print, front, jsonCard, jsonCard.cardFaces.get(1)));
+		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(emi.lib.mtg.Card.Face.Kind.Front, print, front, jsonCard, jsonCard.cardFaces.get(0)));
+		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(emi.lib.mtg.Card.Face.Kind.Transformed, print, front, jsonCard, jsonCard.cardFaces.get(1)));
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
