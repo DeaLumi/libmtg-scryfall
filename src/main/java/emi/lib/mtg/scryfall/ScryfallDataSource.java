@@ -12,11 +12,11 @@ import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.api.enums.SetType;
 import emi.lib.mtg.scryfall.util.CardId;
 import emi.lib.mtg.scryfall.util.MirrorMap;
+import emi.mtg.deckbuilder.util.PluginUtils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -186,7 +186,7 @@ public class ScryfallDataSource implements DataSource {
 	public boolean needsUpdate(Path dataDir) {
 		try {
 			Instant ref = Instant.now().minusMillis(UPDATE_INTERVAL);
-			Instant version = Files.getLastModifiedTime(getJarPath()).toInstant();
+			Instant version = Files.getLastModifiedTime(PluginUtils.jarPath(ScryfallDataSource.class)).toInstant();
 			if (ref.isBefore(version)) {
 				ref = version;
 			}
@@ -198,18 +198,6 @@ public class ScryfallDataSource implements DataSource {
 			ioe.printStackTrace();
 			return true;
 		}
-	}
-
-	private static Path getJarPath() {
-		URL jarUrl = ScryfallDataSource.class.getProtectionDomain().getCodeSource().getLocation();
-		Path jarPath;
-		try {
-			jarPath = Paths.get(jarUrl.toURI()).toAbsolutePath();
-		} catch (URISyntaxException urise) {
-			jarPath = Paths.get(jarUrl.getPath()).toAbsolutePath();
-		}
-
-		return jarPath;
 	}
 
 	private final Map<UUID, CompletableFuture<emi.lib.mtg.scryfall.api.Card>> await = new Hashtable<>();
@@ -492,7 +480,6 @@ public class ScryfallDataSource implements DataSource {
 
 		System.out.println("Checking cards for bad data...");
 
-		int missingCn = 0;
 		for (Card.Printing pr : dataSource.printings()) {
 			if (pr.set() == null) {
 				System.out.printf("Card %s printing {%s} has no associated set!\n", pr.card().fullName(), pr.id());
