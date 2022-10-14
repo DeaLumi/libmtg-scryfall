@@ -3,7 +3,7 @@ package emi.lib.mtg.scryfall;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.ImageSource;
 import emi.lib.mtg.img.MtgAwtImageUtils;
-import emi.lib.mtg.scryfall.api.enums.CardLayout;
+import emi.lib.mtg.scryfall.api.ScryfallApi;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -50,44 +50,15 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private static class ImageDownloadTask {
-		public final URL url;
-		public final CompletableFuture<BufferedImage> image;
-
-		public ImageDownloadTask(URL url) {
-			this.url = url;
-			this.image = new CompletableFuture<>();
-		}
-	}
-	private static final long DOWNLOAD_DELAY = 150;
-
-	private static final LinkedBlockingDeque<ImageDownloadTask> downloadStack = new LinkedBlockingDeque<>();
-
-	private static final Thread downloadThread = new Thread(() -> {
-		while (!Thread.currentThread().isInterrupted()) {
-			try {
-				ImageDownloadTask task = downloadStack.take();
-				try {
-					task.image.complete(ImageIO.read(task.url));
-				} catch (IOException ioe) {
-					task.image.completeExceptionally(ioe);
-				}
-				Thread.sleep(DOWNLOAD_DELAY);
-			} catch (InterruptedException ie) {
-				break;
-			}
-		}
-	}, "Scryfall Image Download Thread");
-
-	static {
-		downloadThread.setDaemon(true);
-		downloadThread.start();
-	}
-
 	private Future<BufferedImage> openUrl(URL url) {
-		ImageDownloadTask task = new ImageDownloadTask(url);
-		downloadStack.push(task);
-		return task.image;
+		return ScryfallApi.get().getURL(url, "image/jpeg", null, true)
+				.thenApply(is -> {
+					try {
+						return ImageIO.read(is);
+					} catch (IOException ioe) {
+						throw new CompletionException(ioe);
+					}
+				});
 	}
 
 	@Override

@@ -98,7 +98,7 @@ public class ScryfallDataSource implements DataSource {
 
 	@Override
 	public boolean update(Path dataDir, DoubleConsumer progress) throws IOException {
-		ScryfallApi api = new ScryfallApi();
+		ScryfallApi api = ScryfallApi.get();
 		List<emi.lib.mtg.scryfall.api.Set> sets = api.sets();
 		Set<String> droppedSets = new HashSet<>();
 

@@ -9,6 +9,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import emi.lib.mtg.scryfall.api.enums.ApiEnum;
 import emi.lib.mtg.scryfall.api.enums.BulkDataType;
+import emi.lib.mtg.scryfall.util.ReportingWrapper;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
@@ -18,7 +19,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -112,63 +112,106 @@ public class ScryfallApi {
 		GSON = builder.create();
 	}
 
-	private final ScheduledExecutorService executor;
-	private long nextRequest;
+	private static ScryfallApi INSTANCE;
+
+	public static ScryfallApi get() {
+		synchronized (ScryfallApi.class) {
+			if (INSTANCE == null) {
+				INSTANCE = new ScryfallApi();
+			}
+		}
+
+		return INSTANCE;
+	}
+
+	private static class Request extends CompletableFuture<InputStream> {
+		public final URL url;
+		public final String contentType;
+		public final LongConsumer reporter;
+
+		public Request(URL url, String contentType, LongConsumer reporter) {
+			this.url = url;
+			this.contentType = contentType;
+			this.reporter = reporter;
+		}
+	}
+
+	private final Thread thread;
+	private final BlockingDeque<Request> requestQueue;
+	private volatile long nextRequest;
 
 	public ScryfallApi() {
-		this.executor = new ScheduledThreadPoolExecutor(1, r -> {
-			Thread th = Executors.defaultThreadFactory().newThread(r);
-			th.setDaemon(true);
-			return th;
-		});
+		this.thread = new Thread("Scryfall API Thread") {
+			@Override
+			public void run() {
+				while (!Thread.interrupted()) {
+					try {
+						Request request = requestQueue.take();
+						request.thenRun(() -> nextRequest = System.currentTimeMillis() + REQUEST_PAUSE);
 
+						try {
+							HttpsURLConnection connection = (HttpsURLConnection) request.url.openConnection();
+							connection.setRequestProperty("Accept", String.format("%s;q=0.9,*/*;q=0.8", request.contentType));
+							connection.setRequestProperty("Accept-Encoding", "gzip");
+							connection.setRequestProperty("user-agent", "emi.lib.mtg.scryfall via java.net");
+
+							if (connection.getResponseCode() != 200) {
+								InputStream err = connection.getErrorStream();
+								if ("gzip".equals(connection.getContentEncoding())) err = new GZIPInputStream(err);
+
+								StringBuilder errStr = new StringBuilder(connection.getContentLength());
+								byte[] buffer = new byte[4096];
+								int read;
+								while ((read = err.read(buffer)) >= 0) errStr.append(new String(buffer, 0, read));
+								err.close();
+
+								throw new IOException(String.format("GET %s returned HTTP %d %s:\n--------\n%s\n--------\n", request.url, connection.getResponseCode(), connection.getResponseMessage(), errStr));
+							}
+
+							InputStream input = connection.getInputStream();
+							if (request.reporter != null) input = new ReportingWrapper(input, request.reporter);
+							if ("gzip".equals(connection.getContentEncoding())) input = new GZIPInputStream(input);
+
+							request.complete(input);
+						} catch (IOException ioe) {
+							request.completeExceptionally(ioe);
+						}
+
+						Thread.sleep(Math.max(REQUEST_PAUSE, nextRequest - System.currentTimeMillis()));
+					} catch (InterruptedException e) {
+						break;
+					}
+				}
+			}
+		};
+
+		this.thread.setDaemon(true);
+		this.thread.start();
+
+		this.requestQueue = new LinkedBlockingDeque<>();
 		this.nextRequest = System.currentTimeMillis();
 	}
 
-	private <T> ScheduledFuture<T> requestJsonAsync(URL url, Type type, LongConsumer reporter) {
-		long delay;
-		synchronized(this) {
-			long now = System.currentTimeMillis();
-			nextRequest = Math.max(nextRequest + REQUEST_PAUSE, now);
-			delay = now - nextRequest;
+	public CompletableFuture<InputStream> getURL(URL url, String contentType, LongConsumer reporter, boolean preempt) {
+		Request request = new Request(url, contentType, reporter);
+
+		if (preempt) {
+			requestQueue.addFirst(request);
+		} else {
+			requestQueue.addLast(request);
 		}
 
-		return executor.schedule(() -> {
-			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-			connection.setRequestProperty("Accept-Encoding", "gzip");
+		return request;
+	}
 
-			if (connection.getResponseCode() != 200) {
-				// TODO: Handle errors...
-				System.err.println("HTTP request for " + url.toString() + " failed: " + connection.getResponseMessage());
-				return null;
-			}
-
-			InputStream input = connection.getInputStream();
-			if (reporter != null) {
-				input = new ReportingWrapper(input, reporter);
-			}
-
-			if ("gzip".equals(connection.getContentEncoding())) {
-				input = new GZIPInputStream(input);
-			}
-
-			return GSON.fromJson(new InputStreamReader(input, StandardCharsets.UTF_8), type);
-		}, delay, TimeUnit.MILLISECONDS);
+	private <T> CompletableFuture<T> requestJsonAsync(URL url, Type type, LongConsumer reporter) {
+		return getURL(url, "application/json", reporter, false)
+				.thenApply(is -> GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), type));
 	}
 
 	public <T> T requestJson(URL url, Type type, LongConsumer reporter) throws IOException {
-		ScheduledFuture<T> downloadTask = requestJsonAsync(url, type, reporter);
-
-		while (!downloadTask.isDone()) {
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException ie) {
-				return null;
-			}
-		}
-
 		try {
-			return downloadTask.get();
+			return this.<T>requestJsonAsync(url, type, reporter).get();
 		} catch (InterruptedException e) {
 			return null;
 		} catch (ExecutionException e) {

@@ -1,11 +1,11 @@
-package emi.lib.mtg.scryfall.api;
+package emi.lib.mtg.scryfall.util;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.DoubleConsumer;
 import java.util.function.LongConsumer;
 
-class ReportingWrapper extends InputStream {
+public class ReportingWrapper extends InputStream {
 	private final InputStream underlying;
 	private final LongConsumer report;
 	private volatile long read;
