@@ -21,6 +21,7 @@ public enum GameFormat implements ApiEnum {
 	Gladiator (null),
 	Premodern (null),
 	Alchemy (null),
+	Explorer (null),
 	Unrecognized (null);
 
 	public final Format libMtgFormat;

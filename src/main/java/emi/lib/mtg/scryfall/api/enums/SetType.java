@@ -23,6 +23,8 @@ public enum SetType implements ApiEnum {
 	Promo (Set.Type.Promo),
 	Token (Set.Type.Other),
 	Memorabilia (Set.Type.Other),
+	Alchemy (Set.Type.Other),
+	Arsenal (Set.Type.Other),
 	Unrecognized (null);
 
 	public final Set.Type libmtgType;
