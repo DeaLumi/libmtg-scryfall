@@ -136,11 +136,13 @@ public class ScryfallApi {
 		}
 	}
 
-	private final Thread thread;
 	private final BlockingDeque<Request> requestQueue;
+	private final Thread thread;
 	private volatile long nextRequest;
 
 	public ScryfallApi() {
+		this.requestQueue = new LinkedBlockingDeque<>();
+
 		this.thread = new Thread("Scryfall API Thread") {
 			@Override
 			public void run() {
@@ -188,7 +190,6 @@ public class ScryfallApi {
 		this.thread.setDaemon(true);
 		this.thread.start();
 
-		this.requestQueue = new LinkedBlockingDeque<>();
 		this.nextRequest = System.currentTimeMillis();
 	}
 

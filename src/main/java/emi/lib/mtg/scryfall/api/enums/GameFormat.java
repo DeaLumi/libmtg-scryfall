@@ -15,13 +15,15 @@ public enum GameFormat implements ApiEnum {
 	Future (Format.Future),
 	Brawl (Format.Brawl),
 	OldSchool (null),
+	Oathbreaker (null),
 	Pioneer (Format.Pioneer),
 	Historic (Format.Historic),
-	HistoricBrawl (null),
+	HistoricBrawl (Format.Brawl),
 	Gladiator (null),
-	Premodern (null),
+	Premodern (Format.Modern),
+	Predh (Format.Commander),
 	Alchemy (null),
-	Explorer (null),
+	Explorer (Format.Explorer),
 	Unrecognized (null);
 
 	public final Format libMtgFormat;
