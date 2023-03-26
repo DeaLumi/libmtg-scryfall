@@ -22,7 +22,7 @@ public enum GameFormat implements ApiEnum {
 	Gladiator (null),
 	Premodern (Format.Modern),
 	Predh (Format.Commander),
-	Alchemy (null),
+	Alchemy (Format.Alchemy),
 	Explorer (Format.Explorer),
 	Unrecognized (null);
 
