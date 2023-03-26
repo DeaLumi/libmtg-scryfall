@@ -171,8 +171,8 @@ public class ScryfallApi {
 							}
 
 							InputStream input = connection.getInputStream();
-							if (request.reporter != null) input = new ReportingWrapper(input, request.reporter);
 							if ("gzip".equals(connection.getContentEncoding())) input = new GZIPInputStream(input);
+							if (request.reporter != null) input = new ReportingWrapper(input, request.reporter);
 
 							request.complete(input);
 						} catch (IOException ioe) {
@@ -246,7 +246,7 @@ public class ScryfallApi {
 
 		if (defaultCards == null) throw new AssertionError(new IOException("Couldn't find scryfall bulk default card data URI!"));
 
-		return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(), l -> progress.accept((double) l / defaultCards.compressedSize));
+		return requestJson(defaultCards.downloadUri.toURL(), new TypeToken<List<Card>>(){}.getType(), l -> progress.accept((double) l / defaultCards.size));
 	}
 
 	public PagedList<Card> query(String syntax) throws IOException {

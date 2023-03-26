@@ -15,7 +15,7 @@ public class BulkDataList extends ApiObjectList<BulkDataList.Entry> {
 		public String description;
 		public URI downloadUri;
 		public Instant updatedAt;
-		public long compressedSize;
+		public long size;
 		public String contentType;
 		public String contentEncoding;
 	}
