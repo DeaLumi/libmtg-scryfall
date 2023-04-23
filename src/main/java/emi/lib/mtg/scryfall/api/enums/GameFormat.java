@@ -18,10 +18,10 @@ public enum GameFormat implements ApiEnum {
 	Oathbreaker (null),
 	Pioneer (Format.Pioneer),
 	Historic (Format.Historic),
-	HistoricBrawl (Format.Brawl),
+	HistoricBrawl (null),
 	Gladiator (null),
-	Premodern (Format.Modern),
-	Predh (Format.Commander),
+	Premodern (null),
+	Predh (null),
 	Alchemy (Format.Alchemy),
 	Explorer (Format.Explorer),
 	Unrecognized (null);
