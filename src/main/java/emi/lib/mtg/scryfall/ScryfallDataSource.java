@@ -235,6 +235,8 @@ public class ScryfallDataSource implements DataSource {
 			case Vanguard:
 			case Saga:
 			case Class:
+			case Mutate:
+			case Prototype:
 				createSimple(card);
 				return;
 			case ReversibleCard:

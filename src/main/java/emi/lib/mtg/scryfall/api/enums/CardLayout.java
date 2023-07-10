@@ -21,6 +21,8 @@ public enum CardLayout implements ApiEnum {
 	ModalDFC,
 	Class,
 	ReversibleCard,
+	Mutate,
+	Prototype,
 	Unrecognized;
 
 	@Override
