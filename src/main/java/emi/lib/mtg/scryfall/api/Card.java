@@ -69,7 +69,7 @@ public class Card extends ApiObject {
 	public Set<Color> colors, colorIndicator, colorIdentity;
 	public List<Part> allParts;
 	public List<Face> cardFaces;
-	public Map<GameFormat, Legality> legalities;
+	public Map<String, Legality> legalities;
 	public boolean reserved;
 	public Integer edhrecRank;
 	public URL rulingsUri;

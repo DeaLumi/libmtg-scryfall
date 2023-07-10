@@ -2,6 +2,10 @@ package emi.lib.mtg.scryfall.api.enums;
 
 import emi.lib.mtg.game.Format;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 public enum GameFormat implements ApiEnum {
 	Standard (Format.Standard),
 	Modern (Format.Modern),
@@ -26,6 +30,18 @@ public enum GameFormat implements ApiEnum {
 	Explorer (Format.Explorer),
 	Unrecognized (null);
 
+	private static final Map<String, GameFormat> nameMap = createNameMap();
+
+	static Map<String, GameFormat> createNameMap() {
+		Map<String, GameFormat> tmp = new HashMap<>();
+
+		for (GameFormat format : GameFormat.values()) {
+			tmp.put(format.serialized, format);
+		}
+
+		return Collections.unmodifiableMap(tmp);
+	}
+
 	public final Format libMtgFormat;
 	private final String serialized;
 
@@ -42,5 +58,9 @@ public enum GameFormat implements ApiEnum {
 	@Override
 	public String serialized() {
 		return serialized;
+	}
+
+	public static GameFormat byName(String name) {
+		return nameMap.get(name);
 	}
 }

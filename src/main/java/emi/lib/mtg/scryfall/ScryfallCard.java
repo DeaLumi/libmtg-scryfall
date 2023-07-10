@@ -26,9 +26,13 @@ class ScryfallCard implements Card {
 		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
 		this.legalities = new EnumMap<>(Format.class);
 		if (jsonCard.legalities != null && !jsonCard.legalities.isEmpty()) {
-			for (Map.Entry<GameFormat, emi.lib.mtg.scryfall.api.enums.Legality> entry : jsonCard.legalities.entrySet()) {
-				if (entry.getKey().libMtgFormat != null) {
-					this.legalities.put(entry.getKey().libMtgFormat, entry.getValue().libMtgLegality);
+			for (Map.Entry<String, emi.lib.mtg.scryfall.api.enums.Legality> entry : jsonCard.legalities.entrySet()) {
+				GameFormat scryfallFormat = GameFormat.byName(entry.getKey());
+				if (scryfallFormat != null && scryfallFormat.libMtgFormat != null) {
+					this.legalities.put(scryfallFormat.libMtgFormat, entry.getValue().libMtgLegality);
+				} else if (scryfallFormat == null) {
+					System.err.println("Warning: Scryfall is reporting legalities for an unrecognized game format \"" + entry.getKey() + "\" -- someone needs to update libmtg-scryfall!");
+					// The alternative to this case -- this library knows the format but libmtg doesn't -- is a concern as well, but not enough of one to print a log message for every card.
 				}
 			}
 		}
