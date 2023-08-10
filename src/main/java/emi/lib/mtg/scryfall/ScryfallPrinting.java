@@ -2,7 +2,6 @@ package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
 import emi.lib.mtg.enums.Rarity;
-import emi.lib.mtg.scryfall.util.MirrorMap;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -99,7 +98,8 @@ class ScryfallPrinting implements Card.Printing {
 	private final ScryfallCard card;
 	final emi.lib.mtg.scryfall.api.Card cardJson;
 
-	final MirrorMap<Card.Face.Kind, ScryfallPrintedFace> faces;
+	private Set<ScryfallPrintedFace> faces, mainFaces;
+	private final Map<ScryfallFace, ScryfallPrintedFace> facesDict;
 
 	private int variation;
 
@@ -108,9 +108,26 @@ class ScryfallPrinting implements Card.Printing {
 		this.card = card;
 		this.cardJson = cardJson;
 
-		this.faces = new MirrorMap<>(() -> new EnumMap<>(Card.Face.Kind.class));
+		this.faces = Collections.emptySet();
+		this.mainFaces = Collections.emptySet();
+		this.facesDict = new HashMap<>();
 
 		this.variation = -1;
+	}
+
+	ScryfallPrintedFace addFace(ScryfallFace face, boolean back, emi.lib.mtg.enums.StandardFrame frame, emi.lib.mtg.scryfall.api.Card jsonCard, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
+		if (facesDict.containsKey(face)) return facesDict.get(face);
+
+		ScryfallPrintedFace printedFace = new ScryfallPrintedFace(this, face, back, frame, jsonCard, faceJson);
+
+		faces = Util.addElem(faces, printedFace, LinkedHashSet::new);
+
+		if (card.mainFaces().contains(face)) {
+			mainFaces = Util.addElem(mainFaces, printedFace, LinkedHashSet::new);
+		}
+
+		facesDict.put(face, printedFace);
+		return printedFace;
 	}
 
 	@Override
@@ -120,12 +137,18 @@ class ScryfallPrinting implements Card.Printing {
 
 	@Override
 	public Set<ScryfallPrintedFace> faces() {
-		return faces.valueSet();
+		return faces;
 	}
 
 	@Override
-	public ScryfallPrintedFace face(Card.Face.Kind kind) {
-		return faces.get(kind);
+	public Set<ScryfallPrintedFace> mainFaces() {
+		return mainFaces;
+	}
+
+	@Override
+	public ScryfallPrintedFace face(Card.Face face) {
+		if (!(face instanceof ScryfallFace)) throw new IllegalArgumentException(String.format("%s is not a face of %s!", face, card));
+		return facesDict.get(face);
 	}
 
 	@Override

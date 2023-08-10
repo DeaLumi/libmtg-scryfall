@@ -4,23 +4,36 @@ import emi.lib.mtg.Card;
 import emi.lib.mtg.enums.Color;
 import emi.lib.mtg.game.Format;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
-import emi.lib.mtg.scryfall.util.MirrorMap;
 
 import java.util.*;
 
 class ScryfallCard implements Card {
-	private final String name;
+	public enum FaceType {
+		Main,
+		Alternate,
+		Transformed,
+		Flipped;
+	}
 
-	final MirrorMap<Face.Kind, ScryfallFace> faces;
-	final MirrorMap<UUID, ScryfallPrinting> printings;
-	final Map<String, ScryfallPrinting> printingsByCn;
-	final EnumMap<Format, Legality> legalities;
-	final Color.Combination colorIdentity;
+	// TODO: Branch this out into at *least* a child class for simple, single-faced cards.
+
+	private final UUID oracleId;
+	private Set<ScryfallFace> faces, mainFaces, transformedFaces;
+	private ScryfallFace flippedFace;
+	private Set<ScryfallPrinting> printings;
+	private final HashMap<UUID, ScryfallPrinting> printingsById;
+	private final HashMap<String, ScryfallPrinting> printingsByCn;
+	private final EnumMap<Format, Legality> legalities;
+	private final Color.Combination colorIdentity;
 
 	ScryfallCard(emi.lib.mtg.scryfall.api.Card jsonCard) {
-		this.name = jsonCard.name;
-		this.faces = new MirrorMap<>(() -> new EnumMap<>(Face.Kind.class));
-		this.printings = new MirrorMap<>(HashMap::new);
+		this.oracleId = jsonCard.oracleId;
+		this.faces = Collections.emptySet();
+		this.mainFaces = Collections.emptySet();
+		this.transformedFaces = Collections.emptySet();
+		this.flippedFace = null;
+		this.printings = Collections.emptySet();
+		this.printingsById = new HashMap<>();
 		this.printingsByCn = new HashMap<>();
 
 		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
@@ -38,24 +51,83 @@ class ScryfallCard implements Card {
 		}
 	}
 
-	@Override
-	public Set<ScryfallFace> faces() {
-		return faces.valueSet();
+	ScryfallFace addFace(emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson, FaceType type) {
+		// TODO: We could somehow check to see if we have this face already, although that shouldn't ever happen.
+		ScryfallFace face = new ScryfallFace(cardJson, faceJson);
+
+		faces = Util.addElem(faces, face, LinkedHashSet::new);
+
+		// TODO: mainFaces should stay consistent with faces; we should manually resort it.
+		switch (type) {
+			case Main: {
+				mainFaces = Util.addElem(mainFaces, face, LinkedHashSet::new);
+				break;
+			}
+
+			case Alternate:
+				break; // Nothing special here.
+
+			case Transformed: {
+				transformedFaces = Util.addElem(transformedFaces, face, LinkedHashSet::new);
+				break;
+			}
+
+			case Flipped: {
+				if (flippedFace != null) throw new IllegalStateException(String.format("%s already contains a flipped face! Can't add %s!", fullName(), face.name()));
+				flippedFace = face;
+				break;
+			}
+		}
+
+		return face;
+	}
+
+	ScryfallFace addFace(emi.lib.mtg.scryfall.api.Card cardJson, FaceType type) {
+		return addFace(cardJson, null, type);
+	}
+
+	ScryfallPrinting addPrinting(ScryfallSet set, emi.lib.mtg.scryfall.api.Card jsonCard) {
+		if (!oracleId.equals(jsonCard.oracleId)) throw new IllegalArgumentException(String.format("Attempt to add %s to %s when oracle IDs differ.", jsonCard.name, this.fullName()));
+		if (printingsById.containsKey(jsonCard.id)) return printingsById.get(jsonCard.id);
+
+		ScryfallPrinting printing = new ScryfallPrinting(set, this, jsonCard);
+
+		if (printings.isEmpty()) {
+			printings = Collections.singleton(printing);
+		} else {
+			if (printings.size() == 1) printings = new LinkedHashSet<>(printings);
+			printings.add(printing);
+		}
+
+		printingsById.put(printing.id(), printing);
+		printingsByCn.put(Util.cardPrintingKey(printing.set().code(), printing.collectorNumber()), printing);
+
+		return printing;
 	}
 
 	@Override
-	public ScryfallFace face(Face.Kind kind) {
-		return faces.get(kind);
+	public Set<ScryfallFace> faces() {
+		return faces;
+	};
+
+	@Override
+	public Set<ScryfallFace> mainFaces() {
+		return mainFaces;
+	}
+
+	@Override
+	public Set<? extends Face> transformedFaces() {
+		return transformedFaces;
 	}
 
 	@Override
 	public Set<ScryfallPrinting> printings() {
-		return printings.valueSet();
+		return printings;
 	}
 
 	@Override
 	public ScryfallPrinting printing(UUID id) {
-		return printings.get(id);
+		return printingsById.get(id);
 	}
 
 	@Override
@@ -63,12 +135,10 @@ class ScryfallCard implements Card {
 		return printingsByCn.get(Util.cardPrintingKey(setCode, collectorNumber));
 	}
 
-	// Scryfall reports flip cards by full name here for some reason.
-	// Use the mtglib default behavior for determining card name here.
-//	@Override
-//	public String name() {
-//		return this.name;
-//	}
+	@Override
+	public Face flipped() {
+		return flippedFace;
+	}
 
 	@Override
 	public Legality legality(Format format) {

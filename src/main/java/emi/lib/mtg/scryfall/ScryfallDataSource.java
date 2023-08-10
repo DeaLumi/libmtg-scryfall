@@ -5,6 +5,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.DataSource;
+import emi.lib.mtg.enums.StandardFrame;
 import emi.lib.mtg.scryfall.api.ScryfallApi;
 import emi.lib.mtg.scryfall.api.Catalog;
 import emi.lib.mtg.scryfall.api.enums.CardLayout;
@@ -243,17 +244,11 @@ public class ScryfallDataSource implements DataSource {
 				createReversible(card);
 				return;
 			case Split:
-				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Left, emi.lib.mtg.Card.Face.Kind.Right);
-				return;
 			case Flip:
-				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Front, emi.lib.mtg.Card.Face.Kind.Flipped);
-				return;
 			case Transform:
 			case ModalDFC:
-				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Front, emi.lib.mtg.Card.Face.Kind.Transformed);
-				return;
 			case Adventure:
-				createTwoFace(card, emi.lib.mtg.Card.Face.Kind.Front, emi.lib.mtg.Card.Face.Kind.Other);
+				createTwoFace(card);
 				return;
 			case Meld:
 				initMeld(card);
@@ -274,11 +269,10 @@ public class ScryfallDataSource implements DataSource {
 		}
 
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
-		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(jsonCard));
+		ScryfallFace front = card.addFace(jsonCard, ScryfallCard.FaceType.Main);
 
-		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
-		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
-		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonCard, null));
+		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, null);
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
@@ -286,35 +280,105 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	private void createReversible(emi.lib.mtg.scryfall.api.Card jsonCard) {
-		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0)), id -> new ScryfallCard(jsonCard));
-		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(Card.Face.Kind.Front, jsonCard, jsonCard.cardFaces.get(0)));
 		ScryfallSet set = sets.get(jsonCard.set);
 
-		// TODO: This needs to be revised later. First, I need to fix libmtg to handle multiple faces of the same kind. Then this should iterate over all cardFaces.
-		// I know, I know; three faces on the same cardboard? But I don't make the rules. I just try desperately to keep up with them...
-		// Also see above -- the front face is taken from the first face ONLY.
-		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
-		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
-		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(emi.lib.mtg.Card.Face.Kind.Front, print, front, jsonCard, jsonCard.cardFaces.get(0)));
-		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(emi.lib.mtg.Card.Face.Kind.Transformed, print, front, jsonCard, jsonCard.cardFaces.get(1)));
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0)), id -> new ScryfallCard(jsonCard));
+		ScryfallFace front = card.addFace(jsonCard, jsonCard.cardFaces.get(0), ScryfallCard.FaceType.Main);
+
+		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(0));
+		ScryfallPrintedFace backPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(1));
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
 	}
 
-	private void createTwoFace(emi.lib.mtg.scryfall.api.Card jsonCard, emi.lib.mtg.Card.Face.Kind firstKind, emi.lib.mtg.Card.Face.Kind secondKind) {
-		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0), jsonCard.cardFaces.get(1)), id -> new ScryfallCard(jsonCard));
+	private void createTwoFace(emi.lib.mtg.scryfall.api.Card jsonCard) {
 		ScryfallSet set = sets.get(jsonCard.set);
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0), jsonCard.cardFaces.get(1)), id -> new ScryfallCard(jsonCard));
 
-		ScryfallFace first = card.faces.computeIfAbsent(firstKind, k -> new ScryfallFace(firstKind, jsonCard, jsonCard.cardFaces.get(0)));
-		ScryfallFace second = card.faces.computeIfAbsent(secondKind, k -> new ScryfallFace(secondKind, jsonCard, jsonCard.cardFaces.get(1)));
+		ScryfallCard.FaceType type2;
+		boolean back;
+		StandardFrame firstFrame, secondFrame;
 
-		ScryfallPrinting print = card.printings.computeIfAbsent(jsonCard.id, id -> new ScryfallPrinting(set, card, jsonCard));
-		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
+		// TODO: Cases here shouldn't throw. It's just a visual bug. Print an error in the logs and choose a reasonable default.
+		switch (jsonCard.layout) {
+			case Transform:
+				firstFrame = jsonCard.cardFaces.get(0).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
+				secondFrame = jsonCard.cardFaces.get(1).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
+				type2 = ScryfallCard.FaceType.Transformed;
+				back = true;
+				break;
+			case ModalDFC:
+				firstFrame = jsonCard.cardFaces.get(0).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
+				secondFrame = jsonCard.cardFaces.get(1).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
+				type2 = ScryfallCard.FaceType.Alternate;
+				back = true;
+				break;
+			case Split:
+				back = false;
+				type2 = ScryfallCard.FaceType.Main;
+				if (jsonCard.cardFaces.get(1).oracleText.startsWith("Aftermath")) {
+					firstFrame = StandardFrame.AftermathTop;
+					secondFrame = StandardFrame.AftermathBottom;
+				} else {
+					switch (jsonCard.frame) {
+						case Khans2015:
+							firstFrame = StandardFrame.SplitLeftModern;
+							secondFrame = StandardFrame.SplitRightModern;
+							break;
+						case Modern2001:
+						case Modern2003:
+						case Old1997:
+							firstFrame = StandardFrame.SplitLeftFull;
+							secondFrame = StandardFrame.SplitRightFull;
+							break;
+						default:
+							throw new IllegalArgumentException("Card layout is " + jsonCard.layout + ", but frame is " + jsonCard.frame);
+					}
+				}
+				break;
+			case Flip:
+				back = false;
+				type2 = ScryfallCard.FaceType.Flipped;
+				if (jsonCard.name.contains("Curse of the Fire Penguin")) {
+					firstFrame = StandardFrame.FirePenguinTop;
+					secondFrame = StandardFrame.FirePenguinBottom;
+				} else {
+					switch (jsonCard.frame) {
+						case Khans2015:
+							firstFrame = StandardFrame.FlipTopModern;
+							secondFrame = StandardFrame.FlipBottomModern;
+							break;
+						case Modern2001:
+						case Modern2003:
+							firstFrame = StandardFrame.FlipTopFull;
+							secondFrame = StandardFrame.FlipBottomFull;
+							break;
+						default:
+							throw new IllegalArgumentException("Card layout is " + jsonCard.layout + ", but frame is " + jsonCard.frame);
+					}
+				}
+				break;
+			case Adventure:
+				back = false;
+				type2 = ScryfallCard.FaceType.Alternate;
+				firstFrame = StandardFrame.FullFace;
+				secondFrame = StandardFrame.Adventure;
+				break;
+			default:
+				// TODO Well, except this one. This one should probably throw.
+				throw new IllegalArgumentException("createTwoFace() called with unexpected card layout " + jsonCard.layout);
+		}
 
-		ScryfallPrintedFace firstPrint = print.faces.computeIfAbsent(firstKind, k -> new ScryfallPrintedFace(print, first, jsonCard, jsonCard.cardFaces.get(0)));
-		ScryfallPrintedFace secondPrint = print.faces.computeIfAbsent(secondKind, k -> new ScryfallPrintedFace(print, second, jsonCard, jsonCard.cardFaces.get(1)));
+		ScryfallFace first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), ScryfallCard.FaceType.Main);
+		ScryfallFace second = card.addFace(jsonCard, jsonCard.cardFaces.get(1), type2);
+
+		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+
+		ScryfallPrintedFace firstPrint = print.addFace(first, false, firstFrame, jsonCard, jsonCard.cardFaces.get(0));
+		ScryfallPrintedFace secondPrint = print.addFace(second, back, secondFrame, jsonCard, jsonCard.cardFaces.get(1));
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
@@ -323,18 +387,17 @@ public class ScryfallDataSource implements DataSource {
 
 	private final BiFunction<emi.lib.mtg.scryfall.api.Card, emi.lib.mtg.scryfall.api.Card, ScryfallPrinting> meld = (jsonFront, jsonBack) -> {
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonFront, jsonBack), id -> new ScryfallCard(jsonFront));
-		ScryfallFace front = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallFace(jsonFront));
-		ScryfallFace back = card.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallFace(jsonBack));
+		ScryfallFace front = card.addFace(jsonFront, ScryfallCard.FaceType.Main);
+		ScryfallFace back = card.addFace(jsonBack, ScryfallCard.FaceType.Transformed);
 
 		ScryfallSet set = sets.get(jsonFront.set);
 		ScryfallSet backSet = sets.get(jsonBack.set);
 
-		assert set == backSet;
+		if (set != backSet) throw new IllegalStateException(String.format("Attempt to construct meld printing from two different sets %s and %s", set, backSet));
 
-		ScryfallPrinting print = card.printings.computeIfAbsent(jsonFront.id, id -> new ScryfallPrinting(set, card, jsonFront));
-		card.printingsByCn.putIfAbsent(Util.cardPrintingKey(set.code(), print.collectorNumber()), print);
-		ScryfallPrintedFace frontPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Front, k -> new ScryfallPrintedFace(print, front, jsonFront, null));
-		ScryfallPrintedFace backPrint = print.faces.computeIfAbsent(emi.lib.mtg.Card.Face.Kind.Transformed, k -> new ScryfallPrintedFace(print, back, jsonBack, null));
+		ScryfallPrinting print = card.addPrinting(set, jsonFront);
+		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonFront, null);
+		ScryfallPrintedFace backPrint = print.addFace(back, true, StandardFrame.Meld, jsonBack, null);
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
@@ -361,7 +424,7 @@ public class ScryfallDataSource implements DataSource {
 				if (awaitOne != null) awaitOther = awaitOne;
 				awaitOne = await;
 			} else {
-				System.err.println(String.format("Unexpected component %s in meld parts for %s; ignoring...", part.component, jsonCard.name));
+				System.err.printf("Unexpected component %s in meld parts for %s; ignoring...%n", part.component, jsonCard.name);
 			}
 		}
 
@@ -371,8 +434,12 @@ public class ScryfallDataSource implements DataSource {
 				other = awaitOther.thenCombine(awaitBack, meld);
 
 		one.thenAcceptBoth(other, (pr1, pr2) -> {
-			assert pr1.card().face(emi.lib.mtg.Card.Face.Kind.Transformed) == pr2.card().face(emi.lib.mtg.Card.Face.Kind.Transformed);
-			assert pr1.set() == pr2.set();
+			if (pr1.set() != pr2.set()) throw new IllegalStateException(String.format("Melded mismatched sets %s and %s!", pr1.set(), pr2.set()));
+
+			for (ScryfallFace face : pr1.card().faces()) {
+				if (pr1.card().mainFaces().contains(face)) continue;
+				if (!pr2.card().faces().contains(face)) throw new IllegalStateException(String.format("Meld part %s contains face %s not in meld part %s's faces!", pr1, face, pr2));
+			}
 		});
 	}
 
@@ -520,7 +587,7 @@ public class ScryfallDataSource implements DataSource {
 
 		ScryfallApi api = new ScryfallApi();
 		Catalog cardNames = api.requestJson(new URL("https://api.scryfall.com/catalog/card-names"), Catalog.class);
-		System.out.println(String.format("%d cards", cardNames.data.size()));
+		System.out.printf("%d cards%n", cardNames.data.size());
 
 		Set<String> newCardNames = new HashSet<>();
 

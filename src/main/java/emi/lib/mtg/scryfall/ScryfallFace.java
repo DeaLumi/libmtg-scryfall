@@ -6,6 +6,7 @@ import emi.lib.mtg.enums.Color;
 import emi.lib.mtg.TypeLine;
 import emi.lib.mtg.game.ability.Abilities;
 
+import java.util.Objects;
 import java.util.Set;
 
 import static emi.lib.mtg.scryfall.Util.or;
@@ -13,7 +14,6 @@ import static emi.lib.mtg.scryfall.Util.orEmpty;
 
 class ScryfallFace implements Card.Face {
 
-	private final Kind kind;
 	private final emi.lib.mtg.scryfall.api.Card cardJson;
 	private final emi.lib.mtg.scryfall.api.Card.Face faceJson;
 
@@ -23,18 +23,9 @@ class ScryfallFace implements Card.Face {
 
 	private Color.Combination color, colorIndicator, colorIdentity;
 
-	ScryfallFace(Kind kind, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
-		this.kind = kind;
+	ScryfallFace(emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
 		this.cardJson = cardJson;
 		this.faceJson = faceJson;
-	}
-
-	ScryfallFace(Kind kind, emi.lib.mtg.scryfall.api.Card cardJson) {
-		this(kind, cardJson, null);
-	}
-
-	ScryfallFace(emi.lib.mtg.scryfall.api.Card cardJson) {
-		this(Card.Face.Kind.Front, cardJson);
 	}
 
 	@Override
@@ -47,6 +38,11 @@ class ScryfallFace implements Card.Face {
 			return;
 		}
 
+		// TODO: I'm holding onto this for now because I'm not sure if this behavior will be wrong.
+		// (Context: I'm mid-refactor for the new faces/mainFaces paradigm in libmtg.)
+		// Old logic here refused to consult the face JSON for flipped cards, probably because we misuse individual
+		// face data somewhere in the deckbuilder.
+		/*
 		switch (this.kind()) {
 			case Flipped:
 				colorIndicator = Util.mapColor(orEmpty(cardJson.colorIndicator));
@@ -64,22 +60,20 @@ class ScryfallFace implements Card.Face {
 			case Left:
 			case Right:
 			case Other:
-				// Have to check for faceJson here; meld backsides are still separate Card objects.
-				colorIndicator = Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator));
-				color = Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors))
-						.plus(colorIndicator);
-				colorIdentity = Mana.Symbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText)
-						.map(Mana.Symbol::color)
-						.collect(Color.Combination.COMBO_COLLECTOR)
-						.plus(color)
-						.plus(TypeLine.landColorIdentity(type()));
+				// The logic below used to be right here.
 				break;
 		}
-	}
+		*/
 
-	@Override
-	public Kind kind() {
-		return kind;
+		// Have to check for faceJson here; meld backsides are still separate Card objects.
+		colorIndicator = Util.mapColor(orEmpty(faceJson != null && faceJson.colorIndicator != null ? faceJson.colorIndicator : cardJson.colorIndicator));
+		color = Util.mapColor(orEmpty(faceJson != null && faceJson.colors != null ? faceJson.colors : cardJson.colors))
+				.plus(colorIndicator);
+		colorIdentity = Mana.Symbol.symbolsIn(faceJson != null ? faceJson.oracleText : cardJson.oracleText)
+				.map(Mana.Symbol::color)
+				.collect(Color.Combination.COMBO_COLLECTOR)
+				.plus(color)
+				.plus(TypeLine.landColorIdentity(type()));
 	}
 
 	@Override
@@ -176,5 +170,18 @@ class ScryfallFace implements Card.Face {
 		}
 
 		return abilities;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(cardJson.oracleId, faceJson == null ? null : faceJson.name);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof ScryfallFace)) return false;
+		ScryfallFace other = (ScryfallFace) obj;
+
+		return cardJson.oracleId.equals(other.cardJson.oracleId) && (faceJson == null ? other.faceJson == null : other.faceJson != null && faceJson.name.equals(other.faceJson.name));
 	}
 }

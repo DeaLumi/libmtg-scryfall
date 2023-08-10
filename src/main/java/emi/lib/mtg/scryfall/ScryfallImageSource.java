@@ -2,6 +2,7 @@ package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
 import emi.lib.mtg.ImageSource;
+import emi.lib.mtg.enums.StandardFrame;
 import emi.lib.mtg.img.MtgAwtImageUtils;
 import emi.lib.mtg.scryfall.api.ScryfallApi;
 
@@ -34,7 +35,7 @@ public class ScryfallImageSource implements ImageSource {
 	private URL smallCardUrl(Card.Printing printing) {
 		if (printing instanceof ScryfallPrinting) {
 			ScryfallPrinting scp = (ScryfallPrinting) printing;
-			ScryfallPrintedFace front = scp.face(Card.Face.Kind.Front);
+			ScryfallPrintedFace front = scp.card().front() != null ? scp.face(scp.card().front()) : null;
 			return url(scp.cardJson, front != null ? front.faceJson : null, "normal");
 		} else {
 			return null; // TODO: We may be able to find an image from Scryfall anyway.
@@ -87,7 +88,12 @@ public class ScryfallImageSource implements ImageSource {
 		}
 
 		try {
-			return MtgAwtImageUtils.faceFromFull(facePrint, openUrl(url).get());
+			// TODO: This is a bit of a hack because Scryfall returns melded face images already assembled and rotated.
+			if (facePrint.frame() == StandardFrame.Meld) {
+				return MtgAwtImageUtils.clearCorners(openUrl(url).get());
+			} else {
+				return MtgAwtImageUtils.faceFromFull(facePrint, openUrl(url).get());
+			}
 		} catch (InterruptedException e) {
 			return null;
 		} catch (ExecutionException e) {
