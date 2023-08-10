@@ -8,6 +8,7 @@ import emi.lib.mtg.DataSource;
 import emi.lib.mtg.enums.StandardFrame;
 import emi.lib.mtg.scryfall.api.ScryfallApi;
 import emi.lib.mtg.scryfall.api.Catalog;
+import emi.lib.mtg.scryfall.api.enums.CardFrame;
 import emi.lib.mtg.scryfall.api.enums.CardLayout;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.api.enums.SetType;
@@ -30,6 +31,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.DoubleConsumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -215,7 +218,12 @@ public class ScryfallDataSource implements DataSource {
 			return;
 		}
 
-		if ("Who // What // When // Where // Why".equals(card.name) || "Smelt // Herd // Saw".equals(card.name)) {
+		if ("Who // What // When // Where // Why".equals(card.name)) {
+			createWhoWhatWhenWhereWhy(card);
+			return;
+		}
+
+		if ("Smelt // Herd // Saw".equals(card.name)) {
 			card.typeLine = card.typeLine.replaceAll(" [/][/] ", " ");
 			card.manaCost = card.manaCost.replaceAll(" [/][/] ", "");
 			createSimple(card);
@@ -259,6 +267,43 @@ public class ScryfallDataSource implements DataSource {
 				System.err.printf("Unexpected token or emblem %s in set %s (%s)%n", card.name, card.setName, card.set);
 				return;
 		}
+	}
+
+	private static final String[] W5 = { "Who", "What", "When", "Where", "Why" };
+	private static final Map<String, Integer> W5_MAP = IntStream.range(0, W5.length).collect(HashMap::new, (m, i) -> m.put(W5[i], i), HashMap::putAll);
+	private static final Map<String, StandardFrame> W5_FRAMES_NEW, W5_FRAMES_OLD;
+
+	static {
+		Map<String, StandardFrame> newTmp = new HashMap<>(), oldTmp = new HashMap<>();
+
+		newTmp.put("Who", StandardFrame.NewWho);
+		newTmp.put("What", StandardFrame.NewWhat);
+		newTmp.put("When", StandardFrame.NewWhen);
+		newTmp.put("Where", StandardFrame.NewWhere);
+		newTmp.put("Why", StandardFrame.NewWhy);
+
+		oldTmp.put("Who", StandardFrame.OldWho);
+		oldTmp.put("What", StandardFrame.OldWhat);
+		oldTmp.put("When", StandardFrame.OldWhen);
+		oldTmp.put("Where", StandardFrame.OldWhere);
+		oldTmp.put("Why", StandardFrame.OldWhy);
+
+		W5_FRAMES_NEW = Collections.unmodifiableMap(newTmp);
+		W5_FRAMES_OLD = Collections.unmodifiableMap(oldTmp);
+	}
+
+	private void createWhoWhatWhenWhereWhy(emi.lib.mtg.scryfall.api.Card jsonCard) {
+		ScryfallSet set = sets.get(jsonCard.set);
+
+		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
+
+		jsonCard.cardFaces.sort(Comparator.comparingInt(a -> W5_MAP.get(a.name)));
+		List<ScryfallFace> faces = jsonCard.cardFaces.stream().map(jf -> card.addFace(jsonCard, jf, ScryfallCard.FaceType.Main)).collect(Collectors.toList());
+
+		boolean old = jsonCard.frame == CardFrame.Old1993 || jsonCard.frame == CardFrame.Old1997 || jsonCard.frame == CardFrame.Modern2001 || jsonCard.frame == CardFrame.Modern2003;
+		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		faces.stream().forEachOrdered(f -> print.addFace(f, false, (old ? W5_FRAMES_OLD : W5_FRAMES_NEW).get(f.name()), jsonCard, f.faceJson));
+		printings.put(print.id(), print);
 	}
 
 	private void createSimple(emi.lib.mtg.scryfall.api.Card jsonCard) {

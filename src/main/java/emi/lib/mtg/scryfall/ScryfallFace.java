@@ -7,7 +7,6 @@ import emi.lib.mtg.TypeLine;
 import emi.lib.mtg.game.ability.Abilities;
 
 import java.util.Objects;
-import java.util.Set;
 
 import static emi.lib.mtg.scryfall.Util.or;
 import static emi.lib.mtg.scryfall.Util.orEmpty;
@@ -15,7 +14,7 @@ import static emi.lib.mtg.scryfall.Util.orEmpty;
 class ScryfallFace implements Card.Face {
 
 	private final emi.lib.mtg.scryfall.api.Card cardJson;
-	private final emi.lib.mtg.scryfall.api.Card.Face faceJson;
+	final emi.lib.mtg.scryfall.api.Card.Face faceJson; // Currently used only for W5 in ScryfallDataSource...
 
 	private Mana.Value manaCost;
 	private TypeLine typeLine;
