@@ -154,6 +154,11 @@ class ScryfallFace implements Card.Face {
 	}
 
 	@Override
+	public String printedDefense() {
+		return or(cardJson.defense, "");
+	}
+
+	@Override
 	public String handModifier() {
 		return or(cardJson.handModifier, "");
 	}

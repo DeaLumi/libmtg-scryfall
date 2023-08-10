@@ -64,7 +64,7 @@ public class Card extends ApiObject {
 	public String oracleText;
 	public String manaCost;
 	public String power, toughness;
-	public String loyalty;
+	public String loyalty, defense;
 	public String lifeModifier, handModifier;
 	public Set<Color> colors, colorIndicator, colorIdentity;
 	public List<Part> allParts;
