@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class Card extends ApiObject {
 	public static class Face extends ApiObject {
@@ -31,6 +32,7 @@ public class Card extends ApiObject {
 		public String artist;
 		public UUID artistId;
 		public UUID illustrationId;
+		public UUID oracleId;
 		public Map<String, URL> imageUris;
 	}
 
@@ -111,4 +113,20 @@ public class Card extends ApiObject {
 	public Map<String, URL> purchaseUris;
 	public Map<String, URL> relatedUris;
 	public LocalDate releasedAt;
+
+	public UUID oracleId() {
+		if (oracleId != null) return oracleId;
+		if (!cardFaces.isEmpty()) {
+			UUID id = null;
+			for (Face face : cardFaces) {
+				if (id == null) id = face.oracleId;
+				if (id == null) throw new IllegalStateException(String.format("%s (%s) %s has no oracle ID!", name, set, collectorNumber));
+				if (!id.equals(face.oracleId)) throw new IllegalStateException(String.format("%s (%s) %s has multiple faces with different oracle IDs: %s", name, set, collectorNumber, cardFaces.stream().map(f -> String.format("%s (%s)", f.name, f.oracleId)).collect(Collectors.joining())));
+			}
+			this.oracleId = id;
+			return id;
+		}
+
+		throw new IllegalStateException(String.format("%s (%s) %s has no oracle ID!", name, set, collectorNumber));
+	}
 }

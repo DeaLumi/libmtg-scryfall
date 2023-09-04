@@ -10,6 +10,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Set;
 import java.util.concurrent.*;
 
 public class ScryfallImageSource implements ImageSource {
@@ -35,8 +36,8 @@ public class ScryfallImageSource implements ImageSource {
 	private URL smallCardUrl(Card.Printing printing) {
 		if (printing instanceof ScryfallPrinting) {
 			ScryfallPrinting scp = (ScryfallPrinting) printing;
-			ScryfallPrintedFace front = scp.card().front() != null ? scp.face(scp.card().front()) : null;
-			return url(scp.cardJson, front != null ? front.faceJson : null, "normal");
+			Set<ScryfallPrintedFace> printedFaces = scp.card().front() != null ? scp.faces(scp.card().front()) : null;
+			return url(scp.cardJson, printedFaces == null || printedFaces.isEmpty() ? null : printedFaces.iterator().next().faceJson, "normal");
 		} else {
 			return null; // TODO: We may be able to find an image from Scryfall anyway.
 		}

@@ -298,7 +298,7 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
 
 		jsonCard.cardFaces.sort(Comparator.comparingInt(a -> W5_MAP.get(a.name)));
-		List<ScryfallFace> faces = jsonCard.cardFaces.stream().map(jf -> card.addFace(jsonCard, jf, ScryfallCard.FaceType.Main)).collect(Collectors.toList());
+		List<ScryfallFace> faces = jsonCard.cardFaces.stream().map(jf -> card.addFace(jsonCard, jf, true)).collect(Collectors.toList());
 
 		boolean old = jsonCard.frame == CardFrame.Old1993 || jsonCard.frame == CardFrame.Old1997 || jsonCard.frame == CardFrame.Modern2001 || jsonCard.frame == CardFrame.Modern2003;
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
@@ -314,7 +314,7 @@ public class ScryfallDataSource implements DataSource {
 		}
 
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
-		ScryfallFace front = card.addFace(jsonCard, ScryfallCard.FaceType.Main);
+		ScryfallFace front = card.addFace(jsonCard, true);
 
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
 		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, null);
@@ -328,11 +328,11 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallSet set = sets.get(jsonCard.set);
 
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0)), id -> new ScryfallCard(jsonCard));
-		ScryfallFace front = card.addFace(jsonCard, jsonCard.cardFaces.get(0), ScryfallCard.FaceType.Main);
+		ScryfallFace front = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
 
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
 		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(0));
-		ScryfallPrintedFace backPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(1));
+		ScryfallPrintedFace backPrint = print.addFace(front, true, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(1));
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
@@ -343,27 +343,29 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallSet set = sets.get(jsonCard.set);
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0), jsonCard.cardFaces.get(1)), id -> new ScryfallCard(jsonCard));
 
-		ScryfallCard.FaceType type2;
 		boolean back;
 		StandardFrame firstFrame, secondFrame;
+
+		ScryfallFace first, second;
 
 		// TODO: Cases here shouldn't throw. It's just a visual bug. Print an error in the logs and choose a reasonable default.
 		switch (jsonCard.layout) {
 			case Transform:
 				firstFrame = jsonCard.cardFaces.get(0).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
 				secondFrame = jsonCard.cardFaces.get(1).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
-				type2 = ScryfallCard.FaceType.Transformed;
+				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
+				second = card.addTransformedFace(first, jsonCard, jsonCard.cardFaces.get(1));
 				back = true;
 				break;
 			case ModalDFC:
 				firstFrame = jsonCard.cardFaces.get(0).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
 				secondFrame = jsonCard.cardFaces.get(1).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
-				type2 = ScryfallCard.FaceType.Alternate;
+				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
+				second = card.addFace(jsonCard, jsonCard.cardFaces.get(1), false);
 				back = true;
 				break;
 			case Split:
 				back = false;
-				type2 = ScryfallCard.FaceType.Main;
 				if (jsonCard.cardFaces.get(1).oracleText.startsWith("Aftermath")) {
 					firstFrame = StandardFrame.AftermathTop;
 					secondFrame = StandardFrame.AftermathBottom;
@@ -383,10 +385,11 @@ public class ScryfallDataSource implements DataSource {
 							throw new IllegalArgumentException("Card layout is " + jsonCard.layout + ", but frame is " + jsonCard.frame);
 					}
 				}
+				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
+				second = card.addFace(jsonCard, jsonCard.cardFaces.get(1), true);
 				break;
 			case Flip:
 				back = false;
-				type2 = ScryfallCard.FaceType.Flipped;
 				if (jsonCard.name.contains("Curse of the Fire Penguin")) {
 					firstFrame = StandardFrame.FirePenguinTop;
 					secondFrame = StandardFrame.FirePenguinBottom;
@@ -405,20 +408,20 @@ public class ScryfallDataSource implements DataSource {
 							throw new IllegalArgumentException("Card layout is " + jsonCard.layout + ", but frame is " + jsonCard.frame);
 					}
 				}
+				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
+				second = card.addFlippedFace(first, jsonCard, jsonCard.cardFaces.get(1));
 				break;
 			case Adventure:
 				back = false;
-				type2 = ScryfallCard.FaceType.Alternate;
 				firstFrame = StandardFrame.FullFace;
 				secondFrame = StandardFrame.Adventure;
+				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
+				second = card.addFace(jsonCard, jsonCard.cardFaces.get(1), false);
 				break;
 			default:
 				// TODO Well, except this one. This one should probably throw.
 				throw new IllegalArgumentException("createTwoFace() called with unexpected card layout " + jsonCard.layout);
 		}
-
-		ScryfallFace first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), ScryfallCard.FaceType.Main);
-		ScryfallFace second = card.addFace(jsonCard, jsonCard.cardFaces.get(1), type2);
 
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
 
@@ -432,8 +435,8 @@ public class ScryfallDataSource implements DataSource {
 
 	private final BiFunction<emi.lib.mtg.scryfall.api.Card, emi.lib.mtg.scryfall.api.Card, ScryfallPrinting> meld = (jsonFront, jsonBack) -> {
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonFront, jsonBack), id -> new ScryfallCard(jsonFront));
-		ScryfallFace front = card.addFace(jsonFront, ScryfallCard.FaceType.Main);
-		ScryfallFace back = card.addFace(jsonBack, ScryfallCard.FaceType.Transformed);
+		ScryfallFace front = card.addFace(jsonFront, true);
+		ScryfallFace back = card.addTransformedFace(front, jsonBack, null);
 
 		ScryfallSet set = sets.get(jsonFront.set);
 		ScryfallSet backSet = sets.get(jsonBack.set);

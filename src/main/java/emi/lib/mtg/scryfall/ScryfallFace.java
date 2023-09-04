@@ -7,6 +7,7 @@ import emi.lib.mtg.TypeLine;
 import emi.lib.mtg.game.ability.Abilities;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import static emi.lib.mtg.scryfall.Util.or;
 import static emi.lib.mtg.scryfall.Util.orEmpty;
@@ -178,7 +179,7 @@ class ScryfallFace implements Card.Face {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(cardJson.oracleId, faceJson == null ? null : faceJson.name);
+		return hashCode(cardJson, faceJson);
 	}
 
 	@Override
@@ -186,6 +187,23 @@ class ScryfallFace implements Card.Face {
 		if (!(obj instanceof ScryfallFace)) return false;
 		ScryfallFace other = (ScryfallFace) obj;
 
-		return cardJson.oracleId.equals(other.cardJson.oracleId) && (faceJson == null ? other.faceJson == null : other.faceJson != null && faceJson.name.equals(other.faceJson.name));
+		return equals(cardJson, faceJson, other.cardJson, other.faceJson);
+	}
+
+	public static UUID oracleId(emi.lib.mtg.scryfall.api.Card card, emi.lib.mtg.scryfall.api.Card.Face face) {
+		if (card.oracleId != null) return card.oracleId;
+		if (face != null && face.oracleId != null) return face.oracleId;
+		throw new IllegalStateException(String.format("%s (%s) %s: Neither card nor face contains an oracle_id!", card.name, card.set, card.collectorNumber));
+	}
+
+	public static int hashCode(emi.lib.mtg.scryfall.api.Card card, emi.lib.mtg.scryfall.api.Card.Face face) {
+		return Objects.hash(oracleId(card, face));
+	}
+
+	public static boolean equals(emi.lib.mtg.scryfall.api.Card card1, emi.lib.mtg.scryfall.api.Card.Face face1, emi.lib.mtg.scryfall.api.Card card2, emi.lib.mtg.scryfall.api.Card.Face face2) {
+		Objects.requireNonNull(card1);
+		Objects.requireNonNull(card2);
+
+		return oracleId(card1, face1).equals(oracleId(card2, face2));
 	}
 }

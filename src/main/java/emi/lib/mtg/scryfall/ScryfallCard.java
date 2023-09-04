@@ -8,18 +8,12 @@ import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import java.util.*;
 
 class ScryfallCard implements Card {
-	public enum FaceType {
-		Main,
-		Alternate,
-		Transformed,
-		Flipped;
-	}
-
 	// TODO: Branch this out into at *least* a child class for simple, single-faced cards.
 
 	private final UUID oracleId;
-	private Set<ScryfallFace> faces, mainFaces, transformedFaces;
-	private ScryfallFace flippedFace;
+	private Map<ScryfallFace, ScryfallFace> faces, mainFaces;
+	private Map<ScryfallFace, Set<ScryfallFace>> transformedFaces;
+	private Map<ScryfallFace, ScryfallFace> flippedFaces;
 	private Set<ScryfallPrinting> printings;
 	private final HashMap<UUID, ScryfallPrinting> printingsById;
 	private final HashMap<String, ScryfallPrinting> printingsByCn;
@@ -27,11 +21,11 @@ class ScryfallCard implements Card {
 	private final Color.Combination colorIdentity;
 
 	ScryfallCard(emi.lib.mtg.scryfall.api.Card jsonCard) {
-		this.oracleId = jsonCard.oracleId;
-		this.faces = Collections.emptySet();
-		this.mainFaces = Collections.emptySet();
-		this.transformedFaces = Collections.emptySet();
-		this.flippedFace = null;
+		this.oracleId = jsonCard.oracleId();
+		this.faces = Collections.emptyMap();
+		this.mainFaces = Collections.emptyMap();
+		this.transformedFaces = Collections.emptyMap();
+		this.flippedFaces = Collections.emptyMap();
 		this.printings = Collections.emptySet();
 		this.printingsById = new HashMap<>();
 		this.printingsByCn = new HashMap<>();
@@ -51,43 +45,43 @@ class ScryfallCard implements Card {
 		}
 	}
 
-	ScryfallFace addFace(emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson, FaceType type) {
-		// TODO: We could somehow check to see if we have this face already, although that shouldn't ever happen.
+	ScryfallFace addFace(emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson, boolean main) {
 		ScryfallFace face = new ScryfallFace(cardJson, faceJson);
-
-		faces = Util.addElem(faces, face, LinkedHashSet::new);
+		if (faces.containsKey(face)) return faces.get(face);
+		faces = Util.addElem(faces, face, LinkedHashMap::new);
 
 		// TODO: mainFaces should stay consistent with faces; we should manually resort it.
-		switch (type) {
-			case Main: {
-				mainFaces = Util.addElem(mainFaces, face, LinkedHashSet::new);
-				break;
-			}
-
-			case Alternate:
-				break; // Nothing special here.
-
-			case Transformed: {
-				transformedFaces = Util.addElem(transformedFaces, face, LinkedHashSet::new);
-				break;
-			}
-
-			case Flipped: {
-				if (flippedFace != null) throw new IllegalStateException(String.format("%s already contains a flipped face! Can't add %s!", fullName(), face.name()));
-				flippedFace = face;
-				break;
-			}
-		}
+		if (main) mainFaces = Util.addElem(mainFaces, face, LinkedHashMap::new);
 
 		return face;
 	}
 
-	ScryfallFace addFace(emi.lib.mtg.scryfall.api.Card cardJson, FaceType type) {
-		return addFace(cardJson, null, type);
+	ScryfallFace addFace(emi.lib.mtg.scryfall.api.Card cardJson, boolean main) {
+		return addFace(cardJson, null, main);
+	}
+
+	ScryfallFace addTransformedFace(ScryfallFace source, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
+		ScryfallFace face = new ScryfallFace(cardJson, faceJson);
+		if (faces.containsKey(face)) return faces.get(face);
+		faces = Util.addElem(faces, face, LinkedHashMap::new);
+
+		if (!transformedFaces.containsKey(source)) transformedFaces = Util.addElem(transformedFaces, source, Collections.emptySet(), LinkedHashMap::new);
+		Util.addElem(transformedFaces, source, Util.addElem(transformedFaces.get(source), face, LinkedHashSet::new), LinkedHashMap::new);
+
+		return face;
+	}
+
+	ScryfallFace addFlippedFace(ScryfallFace source, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
+		ScryfallFace face = new ScryfallFace(cardJson, faceJson);
+		if (faces.containsKey(face)) return faces.get(face);
+		faces = Util.addElem(faces, face, LinkedHashMap::new);
+		flippedFaces = Util.addElem(flippedFaces, source, face, LinkedHashMap::new);
+
+		return face;
 	}
 
 	ScryfallPrinting addPrinting(ScryfallSet set, emi.lib.mtg.scryfall.api.Card jsonCard) {
-		if (!oracleId.equals(jsonCard.oracleId)) throw new IllegalArgumentException(String.format("Attempt to add %s to %s when oracle IDs differ.", jsonCard.name, this.fullName()));
+		if (!oracleId.equals(jsonCard.oracleId())) throw new IllegalArgumentException(String.format("Attempt to add %s to %s when oracle IDs differ.", jsonCard.name, this.fullName()));
 		if (printingsById.containsKey(jsonCard.id)) return printingsById.get(jsonCard.id);
 
 		ScryfallPrinting printing = new ScryfallPrinting(set, this, jsonCard);
@@ -107,17 +101,24 @@ class ScryfallCard implements Card {
 
 	@Override
 	public Set<ScryfallFace> faces() {
-		return faces;
+		return faces.keySet();
 	};
 
 	@Override
 	public Set<ScryfallFace> mainFaces() {
-		return mainFaces;
+		return mainFaces.keySet();
 	}
 
 	@Override
-	public Set<? extends Face> transformedFaces() {
-		return transformedFaces;
+	public Set<? extends Face> transformed(Face source) {
+		if (!(source instanceof ScryfallFace)) throw new IllegalArgumentException(String.format("%s is not a face of %s", source.name(), name()));
+		return transformedFaces.get(source);
+	}
+
+	@Override
+	public Face flipped(Face source) {
+		if (!(source instanceof ScryfallFace)) throw new IllegalArgumentException(String.format("%s is not a face of %s", source.name(), name()));
+		return flippedFaces.get(source);
 	}
 
 	@Override
@@ -133,11 +134,6 @@ class ScryfallCard implements Card {
 	@Override
 	public Printing printing(String setCode, String collectorNumber) {
 		return printingsByCn.get(Util.cardPrintingKey(setCode, collectorNumber));
-	}
-
-	@Override
-	public Face flipped() {
-		return flippedFace;
 	}
 
 	@Override

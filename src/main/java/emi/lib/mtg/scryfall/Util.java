@@ -5,6 +5,7 @@ import emi.lib.mtg.enums.Color;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -60,6 +61,21 @@ class Util {
 		} else if (!to.contains(element)) {
 			if (to.size() == 1) to = constructor.apply(to);
 			to.add(element);
+		}
+
+		return to;
+	}
+
+	static <T> Map<T, T> addElem(Map<T, T> to, T element, Function<Map<T, T>, ? extends Map<T, T>> constructor) {
+		return addElem(to, element, element, constructor);
+	}
+
+	static <K, V> Map<K, V> addElem(Map<K, V> to, K key, V value, Function<Map<K, V>, ? extends Map<K, V>> constructor) {
+		if (to == null || to == Collections.EMPTY_MAP) {
+			to = Collections.singletonMap(key, value);
+		} else if (!to.containsKey(key)) {
+			if (to.size() == 1) to = constructor.apply(to);
+			to.put(key, value);
 		}
 
 		return to;

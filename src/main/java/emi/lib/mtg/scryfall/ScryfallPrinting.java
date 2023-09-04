@@ -99,7 +99,7 @@ class ScryfallPrinting implements Card.Printing {
 	final emi.lib.mtg.scryfall.api.Card cardJson;
 
 	private Set<ScryfallPrintedFace> faces, mainFaces;
-	private final Map<ScryfallFace, ScryfallPrintedFace> facesDict;
+	private final Map<ScryfallFace, Map<ScryfallPrintedFace, ScryfallPrintedFace>> facesDict;
 
 	private int variation;
 
@@ -116,9 +116,8 @@ class ScryfallPrinting implements Card.Printing {
 	}
 
 	ScryfallPrintedFace addFace(ScryfallFace face, boolean back, emi.lib.mtg.enums.StandardFrame frame, emi.lib.mtg.scryfall.api.Card jsonCard, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
-		if (facesDict.containsKey(face)) return facesDict.get(face);
-
 		ScryfallPrintedFace printedFace = new ScryfallPrintedFace(this, face, back, frame, jsonCard, faceJson);
+		if (facesDict.containsKey(face) && facesDict.get(face).containsKey(printedFace)) return facesDict.get(face).get(printedFace);
 
 		faces = Util.addElem(faces, printedFace, LinkedHashSet::new);
 
@@ -126,7 +125,7 @@ class ScryfallPrinting implements Card.Printing {
 			mainFaces = Util.addElem(mainFaces, printedFace, LinkedHashSet::new);
 		}
 
-		facesDict.put(face, printedFace);
+		facesDict.computeIfAbsent(face, f -> new LinkedHashMap<>()).put(printedFace, printedFace);
 		return printedFace;
 	}
 
@@ -146,9 +145,9 @@ class ScryfallPrinting implements Card.Printing {
 	}
 
 	@Override
-	public ScryfallPrintedFace face(Card.Face face) {
+	public Set<ScryfallPrintedFace> faces(Card.Face face) {
 		if (!(face instanceof ScryfallFace)) throw new IllegalArgumentException(String.format("%s is not a face of %s!", face, card));
-		return facesDict.get(face);
+		return facesDict.get(face).keySet();
 	}
 
 	@Override
