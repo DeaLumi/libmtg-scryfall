@@ -214,7 +214,7 @@ public class ScryfallDataSource implements DataSource {
 		CompletableFuture<emi.lib.mtg.scryfall.api.Card> pending = await.get(card.id);
 
 		if (pending != null) {
-			pending.complete(card);
+			if (!pending.complete(card)) System.err.printf("!? We already completed meld for %s!?%n", card.name);
 			return;
 		}
 
@@ -488,6 +488,9 @@ public class ScryfallDataSource implements DataSource {
 				if (pr1.card().mainFaces().contains(face)) continue;
 				if (!pr2.card().faces().contains(face)) throw new IllegalStateException(String.format("Meld part %s contains face %s not in meld part %s's faces!", pr1, face, pr2));
 			}
+		}).handle((nothing, exc) -> {
+			exc.printStackTrace();
+			throw new CompletionException(exc);
 		});
 	}
 
@@ -532,7 +535,13 @@ public class ScryfallDataSource implements DataSource {
 			}
 
 			processor.submit(() -> {
-				process(card);
+				try {
+					process(card);
+				} catch (Exception e) {
+					System.err.printf("When processing %s (%s) %s:%n", card.name, card.set, card.collectorNumber);
+					e.printStackTrace();
+					throw e;
+				}
 
 				if (progress != null) {
 					int x = processedCount.incrementAndGet();
