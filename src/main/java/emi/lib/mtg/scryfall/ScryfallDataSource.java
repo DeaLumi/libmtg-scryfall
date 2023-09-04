@@ -575,7 +575,7 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallDataSource dataSource = new ScryfallDataSource();
 
 		if (dataSource.needsUpdate(wd)) {
-			dataSource.update(wd, x -> {});
+			dataSource.update(wd, x -> System.out.printf("\rUpdating data: %.2f", x * 100.0));
 		}
 
 		DoubleConsumer loadProfiler = pct -> {
