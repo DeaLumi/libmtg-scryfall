@@ -179,10 +179,11 @@ class ScryfallFace implements Card.Face {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(cardJson.oracleId, cardJson.name, cardJson.oracleText,
-				faceJson == null ? null : faceJson.oracleId,
-				faceJson == null ? null : faceJson.name,
-				faceJson == null ? null : faceJson.oracleText);
+		return Objects.hash(
+				faceJson == null || faceJson.oracleId == null ? cardJson.oracleId : faceJson.oracleId,
+				faceJson == null || faceJson.name == null ? cardJson.name : faceJson.name,
+				faceJson == null || faceJson.oracleText == null ? cardJson.oracleText : faceJson.oracleText
+		);
 	}
 
 	@Override
@@ -190,15 +191,9 @@ class ScryfallFace implements Card.Face {
 		if (!(obj instanceof ScryfallFace)) return false;
 		ScryfallFace other = (ScryfallFace) obj;
 
-		if (faceJson != null ^ other.faceJson != null) return false;
-
-		return Objects.equals(cardJson.oracleId, other.cardJson.oracleId) &&
-				Objects.equals(cardJson.name, other.cardJson.name) &&
-				Objects.equals(cardJson.oracleText, other.cardJson.oracleText) &&
-				(faceJson == null || (
-						Objects.equals(faceJson.oracleId, other.faceJson.oracleId) &&
-						Objects.equals(faceJson.name, other.faceJson.name) &&
-						Objects.equals(faceJson.oracleText, other.faceJson.oracleText)
-				));
+		return Objects.equals(
+				faceJson == null || faceJson.oracleId == null ? cardJson.oracleId : faceJson.oracleId,
+				other.faceJson == null || other.faceJson.oracleId == null ? other.cardJson.oracleId : other.faceJson.oracleId
+		) && name().equals(other.name()) && rules().equals(other.rules());
 	}
 }
