@@ -179,7 +179,10 @@ class ScryfallFace implements Card.Face {
 
 	@Override
 	public int hashCode() {
-		return hashCode(cardJson, faceJson);
+		return Objects.hash(cardJson.oracleId, cardJson.name, cardJson.oracleText,
+				faceJson == null ? null : faceJson.oracleId,
+				faceJson == null ? null : faceJson.name,
+				faceJson == null ? null : faceJson.oracleText);
 	}
 
 	@Override
@@ -187,23 +190,15 @@ class ScryfallFace implements Card.Face {
 		if (!(obj instanceof ScryfallFace)) return false;
 		ScryfallFace other = (ScryfallFace) obj;
 
-		return equals(cardJson, faceJson, other.cardJson, other.faceJson);
-	}
+		if (faceJson != null ^ other.faceJson != null) return false;
 
-	public static UUID oracleId(emi.lib.mtg.scryfall.api.Card card, emi.lib.mtg.scryfall.api.Card.Face face) {
-		if (card.oracleId != null) return card.oracleId;
-		if (face != null && face.oracleId != null) return face.oracleId;
-		throw new IllegalStateException(String.format("%s (%s) %s: Neither card nor face contains an oracle_id!", card.name, card.set, card.collectorNumber));
-	}
-
-	public static int hashCode(emi.lib.mtg.scryfall.api.Card card, emi.lib.mtg.scryfall.api.Card.Face face) {
-		return Objects.hash(oracleId(card, face));
-	}
-
-	public static boolean equals(emi.lib.mtg.scryfall.api.Card card1, emi.lib.mtg.scryfall.api.Card.Face face1, emi.lib.mtg.scryfall.api.Card card2, emi.lib.mtg.scryfall.api.Card.Face face2) {
-		Objects.requireNonNull(card1);
-		Objects.requireNonNull(card2);
-
-		return oracleId(card1, face1).equals(oracleId(card2, face2));
+		return Objects.equals(cardJson.oracleId, other.cardJson.oracleId) &&
+				Objects.equals(cardJson.name, other.cardJson.name) &&
+				Objects.equals(cardJson.oracleText, other.cardJson.oracleText) &&
+				(faceJson == null || (
+						Objects.equals(faceJson.oracleId, other.faceJson.oracleId) &&
+						Objects.equals(faceJson.name, other.faceJson.name) &&
+						Objects.equals(faceJson.oracleText, other.faceJson.oracleText)
+				));
 	}
 }
