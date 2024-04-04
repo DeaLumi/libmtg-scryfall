@@ -28,6 +28,8 @@ public enum GameFormat implements ApiEnum {
 	Predh (null),
 	Alchemy (Format.Alchemy),
 	Explorer (Format.Explorer),
+	Timeless (null),
+	StandardBrawl (null),
 	Unrecognized (null);
 
 	private static final Map<String, GameFormat> nameMap = createNameMap();

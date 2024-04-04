@@ -23,6 +23,7 @@ public enum CardLayout implements ApiEnum {
 	ReversibleCard,
 	Mutate,
 	Prototype,
+	Case,
 	Unrecognized;
 
 	@Override

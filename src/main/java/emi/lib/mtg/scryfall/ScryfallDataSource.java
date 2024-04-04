@@ -246,6 +246,7 @@ public class ScryfallDataSource implements DataSource {
 			case Class:
 			case Mutate:
 			case Prototype:
+			case Case:
 				createSimple(card);
 				return;
 			case ReversibleCard:
