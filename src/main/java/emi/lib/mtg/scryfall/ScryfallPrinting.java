@@ -51,6 +51,7 @@ class ScryfallPrinting implements Card.Printing {
 
 	private final static Pattern PT_CN_PATTERN = Pattern.compile("(?<p>p)?(?<year>[0-9]{4})-(?<number>[0-9]{1,2})");
 	private final static Pattern ARENA_CN_PATTERN = Pattern.compile("(?<number>[0-9]{3})-(?<name>[A-Z]+)");
+	private final static Pattern LIST_PATTERN = Pattern.compile("(?<osc>[A-Za-z0-9]{3,4})-(?<ocn>" + OrdinaryCollectorNumber.PATTERN + ")");
 
 	final static Comparator<String> COLLECTOR_NUMBER_COMPARATOR = (s1, s2) -> {
 		OrdinaryCollectorNumber ocn1 = OrdinaryCollectorNumber.of(s1), ocn2 = OrdinaryCollectorNumber.of(s2);
@@ -86,6 +87,26 @@ class ScryfallPrinting implements Card.Printing {
 			int n1 = Integer.parseInt(matcher1.group("number")), n2 = Integer.parseInt(matcher2.group("number"));
 			if (n1 != n2) return n1 - n2;
 			return matcher1.group("name").compareTo(matcher2.group("name"));
+		} else if (m1 || m2) {
+			return m1 ? -1 : 1;
+		}
+
+		matcher1 = LIST_PATTERN.matcher(s1);
+		matcher2 = LIST_PATTERN.matcher(s2);
+		m1 = matcher1.matches();
+		m2 = matcher2.matches();
+
+		if (m1 && m2) {
+			String osc1 = matcher1.group("osc"), osc2 = matcher2.group("osc");
+			if (!osc1.equals(osc2)) return osc1.compareTo(osc2);
+
+			ocn1 = OrdinaryCollectorNumber.of(matcher1.group("ocn"));
+			ocn2 = OrdinaryCollectorNumber.of(matcher2.group("ocn"));
+			if (ocn1 != null && ocn2 != null) {
+				return ocn1.compareTo(ocn2);
+			} else if (ocn1 != null || ocn2 != null) {
+				return ocn1 != null ? -1 : 1;
+			}
 		} else if (m1 || m2) {
 			return m1 ? -1 : 1;
 		}
