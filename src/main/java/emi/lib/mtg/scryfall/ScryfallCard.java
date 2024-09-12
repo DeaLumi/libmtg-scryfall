@@ -65,8 +65,13 @@ class ScryfallCard implements Card {
 		if (faces.containsKey(face)) return faces.get(face);
 		faces = Util.addElem(faces, face, LinkedHashMap::new);
 
-		if (!transformedFaces.containsKey(source)) transformedFaces = Util.addElem(transformedFaces, source, Collections.emptySet(), LinkedHashMap::new);
-		Util.addElem(transformedFaces, source, Util.addElem(transformedFaces.get(source), face, LinkedHashSet::new), LinkedHashMap::new);
+		Set<ScryfallFace> sourceTransforms = transformedFaces.get(source);
+		if (sourceTransforms == null) {
+			sourceTransforms = Collections.emptySet();
+		}
+
+		sourceTransforms = Util.addElem(sourceTransforms, face, LinkedHashSet::new);
+		transformedFaces = Util.addElem(transformedFaces, source, sourceTransforms, LinkedHashMap::new);
 
 		return face;
 	}
@@ -112,7 +117,7 @@ class ScryfallCard implements Card {
 	@Override
 	public Set<? extends Face> transformed(Face source) {
 		if (!(source instanceof ScryfallFace)) throw new IllegalArgumentException(String.format("%s is not a face of %s", source.name(), name()));
-		return transformedFaces.get(source);
+		return transformedFaces.getOrDefault(source, Collections.emptySet());
 	}
 
 	@Override
