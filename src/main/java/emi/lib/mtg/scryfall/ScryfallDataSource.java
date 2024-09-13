@@ -318,7 +318,7 @@ public class ScryfallDataSource implements DataSource {
 		ScryfallFace front = card.addFace(jsonCard, true);
 
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
-		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, null);
+		ScryfallPrintedFace frontPrint = print.addFace(front, false, isSideways(jsonCard.typeLine) ? StandardFrame.SidewaysFullFace : StandardFrame.FullFace, jsonCard, null);
 
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
@@ -340,6 +340,10 @@ public class ScryfallDataSource implements DataSource {
 		printings.put(print.id(), print);
 	}
 
+	private static boolean isSideways(String typeLine) {
+		return typeLine.contains("Battle") || typeLine.contains("Phenomenon") || typeLine.contains("Plane");
+	}
+
 	private void createTwoFace(emi.lib.mtg.scryfall.api.Card jsonCard) {
 		ScryfallSet set = sets.get(jsonCard.set);
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0), jsonCard.cardFaces.get(1)), id -> new ScryfallCard(jsonCard));
@@ -352,15 +356,15 @@ public class ScryfallDataSource implements DataSource {
 		// TODO: Cases here shouldn't throw. It's just a visual bug. Print an error in the logs and choose a reasonable default.
 		switch (jsonCard.layout) {
 			case Transform:
-				firstFrame = jsonCard.cardFaces.get(0).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
-				secondFrame = jsonCard.cardFaces.get(1).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
+				firstFrame = isSideways(jsonCard.cardFaces.get(0).typeLine) ? StandardFrame.SidewaysFullFace : StandardFrame.FullFace;
+				secondFrame = isSideways(jsonCard.cardFaces.get(1).typeLine) ? StandardFrame.SidewaysFullFace : StandardFrame.FullFace;
 				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
 				second = card.addTransformedFace(first, jsonCard, jsonCard.cardFaces.get(1));
 				back = true;
 				break;
 			case ModalDFC:
-				firstFrame = jsonCard.cardFaces.get(0).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
-				secondFrame = jsonCard.cardFaces.get(1).typeLine.contains("Battle") ? StandardFrame.Battle : StandardFrame.FullFace;
+				firstFrame = isSideways(jsonCard.cardFaces.get(0).typeLine) ? StandardFrame.SidewaysFullFace : StandardFrame.FullFace;
+				secondFrame = isSideways(jsonCard.cardFaces.get(1).typeLine) ? StandardFrame.SidewaysFullFace : StandardFrame.FullFace;
 				first = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
 				second = card.addFace(jsonCard, jsonCard.cardFaces.get(1), false);
 				back = true;
