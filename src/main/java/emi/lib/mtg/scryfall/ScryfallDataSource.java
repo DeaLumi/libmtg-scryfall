@@ -543,9 +543,7 @@ public class ScryfallDataSource implements DataSource {
 				try {
 					process(card);
 				} catch (Exception e) {
-					System.err.printf("When processing %s (%s) %s:%n", card.name, card.set, card.collectorNumber);
-					e.printStackTrace();
-					throw e;
+					throw new RuntimeException(String.format("While processing %s (%s) %s:%n", card.name, card.set, card.collectorNumber), e);
 				}
 
 				if (progress != null) {
