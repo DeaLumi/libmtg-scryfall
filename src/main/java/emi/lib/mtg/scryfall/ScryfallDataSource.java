@@ -341,7 +341,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	private static boolean isSideways(String typeLine) {
-		return typeLine.contains("Battle") || typeLine.contains("Phenomenon") || typeLine.contains("Plane");
+		return typeLine.contains("Battle") || typeLine.contains("Phenomenon") || typeLine.contains("Plane ");
 	}
 
 	private void createTwoFace(emi.lib.mtg.scryfall.api.Card jsonCard) {
