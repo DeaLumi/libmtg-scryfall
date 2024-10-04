@@ -515,7 +515,7 @@ public class ScryfallDataSource implements DataSource {
 			emi.lib.mtg.scryfall.api.Set set = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Set.class);
 			expect(code, set.code);
 
-			if (set.setType == SetType.Token) {
+			if (set.setType == SetType.Token && !HORDE_SETS.contains(set.code.toLowerCase())) {
 				continue;
 			}
 
