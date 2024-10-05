@@ -1,8 +1,5 @@
 package emi.lib.mtg.scryfall;
 
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
 import emi.lib.mtg.Card;
 import emi.lib.mtg.DataSource;
 import emi.lib.mtg.enums.StandardFrame;
@@ -12,15 +9,13 @@ import emi.lib.mtg.scryfall.api.enums.CardFrame;
 import emi.lib.mtg.scryfall.api.enums.CardLayout;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
 import emi.lib.mtg.scryfall.api.enums.SetType;
+import emi.lib.mtg.scryfall.serde.ScryfallSerde;
 import emi.lib.mtg.scryfall.util.CardId;
 import emi.lib.mtg.scryfall.util.MirrorMap;
 import emi.mtg.deckbuilder.util.PluginUtils;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +28,6 @@ import java.util.function.BiFunction;
 import java.util.function.DoubleConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
@@ -54,12 +47,6 @@ public class ScryfallDataSource implements DataSource {
 		tmp.add("tfth");
 		tmp.add("tdag");
 		return Collections.unmodifiableSet(tmp);
-	}
-
-	private static void expect(Object input, Object expected) throws IOException {
-		if (!Objects.equals(input, expected)) {
-			throw new IOException(String.format("Expected to see \'%s\', but got \'%s\' instead!", Objects.toString(input), Objects.toString(expected)));
-		}
 	}
 
 	private final MirrorMap<UUID, ScryfallPrinting> printings = new MirrorMap<>(Hashtable::new);
@@ -97,59 +84,56 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	private Path dataFile(Path dataDir) {
-		return dataDir.resolve("scryfall-data.json.gz");
+		return dataDir.resolve("scryfall-data" + ScryfallPreferences.get().serde.extension);
 	}
 
 	@Override
 	public boolean update(Path dataDir, DoubleConsumer progress) throws IOException {
 		ScryfallApi api = ScryfallApi.get();
+		ScryfallSerde serde = ScryfallSerde.get();
+
+		System.out.printf("Scryfall: Using %s serializer to save to %s%n", serde.type(), dataFile(dataDir));
+
+		Path tmp = Files.createTempFile("scryfall-data", serde.type().extension);
+		serde.startWriting(tmp);
+
 		List<emi.lib.mtg.scryfall.api.Set> sets = api.sets();
 		Set<String> droppedSets = new HashSet<>();
-
-		Path tmp = Files.createTempFile("scryfall-data", ".json.gz");
-		JsonWriter writer = ScryfallApi.GSON.newJsonWriter(new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(tmp)), StandardCharsets.UTF_8));
-
-		writer.beginObject();
-
-		writer.name("sets");
-		writer.beginObject();
-		for (emi.lib.mtg.scryfall.api.Set set : sets) {
+		sets = sets.stream().filter(set -> {
 			if (set.setType == SetType.Token && !HORDE_SETS.contains(set.code.toLowerCase())) {
 				droppedSets.add(set.code);
-				continue;
+				return false;
+			} else {
+				return true;
 			}
+		}).collect(Collectors.toList());
 
-			writer.name(set.code);
-			ScryfallApi.GSON.toJson(set, emi.lib.mtg.scryfall.api.Set.class, writer);
-		}
-		writer.endObject();
+		serde.writeStartSets(sets.size());
+		for (emi.lib.mtg.scryfall.api.Set set : sets) serde.writeSet(set);
+		serde.writeEndSets();
 
 		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(d -> progress.accept(0.5 * d));
-
-		writer.name("printings");
-		writer.beginObject();
-		writer.name("count");
-		writer.value(cards.size());
-		int statusCounter = 0;
-		for (emi.lib.mtg.scryfall.api.Card card : cards) {
+		cards = cards.stream().filter(card -> {
 			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken || card.layout == CardLayout.Emblem) {
-				continue;
+				return false;
 			}
 
 			if (card.layout == CardLayout.ArtSeries) {
-				continue;
+				return false;
 			}
 
 			if ("Card".equals(card.typeLine)) {
-				continue;
+				return false;
 			}
 
 			if (droppedSets.contains(card.set)) {
-				continue;
+				return false;
 			}
 
+			return true;
+		}).peek(card -> {
 			// Null out some excess data here to save hard drive space.
-			DROPPED_FORMATS.forEach(card.legalities::remove);
+			DROPPED_FORMATS.forEach(f -> card.legalities.remove(f.serialized()));
 			card.purchaseUris = null;
 			card.relatedUris = null;
 			card.printsSearchUri = null;
@@ -163,19 +147,21 @@ public class ScryfallDataSource implements DataSource {
 					card.allParts = null;
 				}
 			}
+		}).collect(Collectors.toList());
 
-			writer.name(card.id.toString());
-			ScryfallApi.GSON.toJson(card, emi.lib.mtg.scryfall.api.Card.class, writer);
+		serde.writeStartCards(cards.size());
+		int statusCounter = 0;
+		for (emi.lib.mtg.scryfall.api.Card card : cards) {
+			serde.writeCard(card);
 
 			if (progress != null) {
 				++statusCounter;
 				progress.accept(0.5 + 0.5 * (double) statusCounter / (double) cards.size());
 			}
 		}
-		writer.endObject();
+		serde.writeEndCards();
 
-		writer.endObject();
-		writer.close();
+		serde.endWriting();
 
 		Files.copy(tmp, dataFile(dataDir), StandardCopyOption.REPLACE_EXISTING);
 		Files.delete(tmp);
@@ -504,16 +490,16 @@ public class ScryfallDataSource implements DataSource {
 		this.cards.clear();
 		this.printings.clear();
 		this.sets.clear();
+		this.await.clear();
 
-		JsonReader reader = ScryfallApi.GSON.newJsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(dataFile(dataDir))), StandardCharsets.UTF_8));
-		reader.beginObject();
+		ScryfallSerde serde = ScryfallSerde.get();
+		System.out.printf("Scryfall: Using %s deserializer to read %s%n", serde.type(), dataFile(dataDir));
 
-		expect(reader.nextName(), "sets");
-		reader.beginObject();
-		while (reader.peek() == JsonToken.NAME) {
-			String code = reader.nextName();
-			emi.lib.mtg.scryfall.api.Set set = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Set.class);
-			expect(code, set.code);
+		serde.startReading(dataFile(dataDir));
+
+		serde.readStartSets();
+		while (serde.hasNextSet()) {
+			emi.lib.mtg.scryfall.api.Set set = serde.nextSet();
 
 			if (set.setType == SetType.Token && !HORDE_SETS.contains(set.code.toLowerCase())) {
 				continue;
@@ -521,19 +507,14 @@ public class ScryfallDataSource implements DataSource {
 
 			sets.put(set.code, new ScryfallSet(set));
 		}
-		reader.endObject();
+		serde.readEndSets();
 
 		ExecutorService processor = Executors.newCachedThreadPool();
 
-		expect(reader.nextName(), "printings");
-		reader.beginObject();
-		expect(reader.nextName(), "count");
-		final double printingCount = reader.nextLong();
+		final double printingCount = serde.readStartCards();
 		final AtomicInteger processedCount = new AtomicInteger();
-		while (reader.peek() == JsonToken.NAME) {
-			String id = reader.nextName();
-			emi.lib.mtg.scryfall.api.Card card = ScryfallApi.GSON.fromJson(reader, emi.lib.mtg.scryfall.api.Card.class);
-			expect(id, card.id.toString());
+		while (serde.hasNextCard()) {
+			emi.lib.mtg.scryfall.api.Card card = serde.nextCard();
 
 			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken) {
 				continue;
@@ -554,10 +535,9 @@ public class ScryfallDataSource implements DataSource {
 				}
 			});
 		}
-		reader.endObject();
+		serde.readEndCards();
 
-		reader.endObject();
-		reader.close();
+		serde.endReading();
 
 		processor.shutdown();
 		try {
@@ -574,12 +554,23 @@ public class ScryfallDataSource implements DataSource {
 	public static void main(String[] args) throws IOException {
 		Path wd = Paths.get(".");
 
+		ScryfallPreferences.get().serde = ScryfallSerde.Implementation.MessagePack;
+
 		long start = System.nanoTime();
 		ScryfallDataSource dataSource = new ScryfallDataSource();
 
 		if (dataSource.needsUpdate(wd)) {
+			System.out.printf("Begin update()%n");
+			System.gc();
+			System.gc();
+			start = System.nanoTime();
 			dataSource.update(wd, x -> System.out.printf("\rUpdating data: %.2f", x * 100.0));
+			System.out.printf("%nupdate() took %.2f seconds%n", (System.nanoTime() - start) / 1e9);
+			System.gc();
+			System.gc();
 		}
+
+		System.out.printf("New: %.2f seconds%n", (System.nanoTime() - start) / 1e9);
 
 		DoubleConsumer loadProfiler = pct -> {
 			long max = Runtime.getRuntime().maxMemory();
@@ -587,25 +578,21 @@ public class ScryfallDataSource implements DataSource {
 			long free = Runtime.getRuntime().freeMemory();
 			long used = curLimit - free;
 
-			System.out.printf("%.2f%%: max = %.3f MB, curLimit = %.3f MB, used = %.3f MB\n", pct * 100.0, max / 1024.0 / 1024.0, curLimit / 1024.0 / 1024.0, used / 1024.0 / 1024.0);
+			System.out.printf("\r%.2f%%: max = %.3f MB, curLimit = %.3f MB, used = %.3f MB", pct * 100.0, max / 1024.0 / 1024.0, curLimit / 1024.0 / 1024.0, used / 1024.0 / 1024.0);
 		};
 
-		System.out.println(String.format("New: %.2f seconds", (System.nanoTime() - start) / 1e9));
-
 		System.out.println("Begin loadData()");
+		System.gc();
+		System.gc();
 		start = System.nanoTime();
-		System.gc();
-		System.gc();
 		loadProfiler.accept(-0.01);
 		dataSource.loadData(wd, loadProfiler);
-		System.gc();
-		System.gc();
 		loadProfiler.accept(1.01);
-		System.out.println(String.format("loadData() took %.2f seconds", (System.nanoTime() - start) / 1e9));
+		System.out.printf("%nloadData() took %.2f seconds%n", (System.nanoTime() - start) / 1e9);
+		System.gc();
+		System.gc();
 
-		System.out.println(String.format("New: %d sets, %d cards, %d printings", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size()));
-
-		System.in.read();
+		System.out.printf("New: %d sets, %d cards, %d printings%n", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size());
 
 		System.out.println("Checking cards for bad data...");
 
