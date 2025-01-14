@@ -31,6 +31,29 @@ import java.util.stream.IntStream;
 
 public class ScryfallDataSource implements DataSource {
 	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
+	public static boolean excludeCard(emi.lib.mtg.scryfall.api.Card card) {
+		// For now, we exclude tokens from the data source. In the future, I may want to retain these, though...
+		if (card.setType == SetType.Token && !HORDE_SETS.contains(card.set.toLowerCase())) {
+			return true;
+		}
+
+		// Same as above.
+		if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken || card.layout == CardLayout.Emblem) {
+			return true;
+		}
+
+		// Exclude art cards from the data.
+		if (card.layout == CardLayout.ArtSeries) {
+			return true;
+		}
+
+		// Placeholder cards, unusual tokens, memorabilia besides art cards
+		if ("Card".equals(card.typeLine)) {
+			return true;
+		}
+
+		return false;
+	}
 
 	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
 			GameFormat.Duel,
@@ -113,25 +136,8 @@ public class ScryfallDataSource implements DataSource {
 		serde.writeEndSets();
 
 		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(d -> progress.accept(0.5 * d));
-		cards = cards.stream().filter(card -> {
-			if (card.layout == CardLayout.Token || card.layout == CardLayout.DoubleFacedToken || card.layout == CardLayout.Emblem) {
-				return false;
-			}
-
-			if (card.layout == CardLayout.ArtSeries) {
-				return false;
-			}
-
-			if ("Card".equals(card.typeLine)) {
-				return false;
-			}
-
-			if (droppedSets.contains(card.set)) {
-				return false;
-			}
-
-			return true;
-		}).peek(card -> {
+		cards = cards.stream().filter(card -> !(excludeCard(card) || droppedSets.contains(card.set)))
+		.peek(card -> {
 			// Null out some excess data here to save hard drive space.
 			DROPPED_FORMATS.forEach(f -> card.legalities.remove(f.serialized()));
 			card.purchaseUris = null;
