@@ -12,8 +12,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ScryfallSearchProvider implements emi.mtg.deckbuilder.view.search.SearchProvider {
-	private final ScryfallApi api = new ScryfallApi();
-
 	@Override
 	public String name() {
 		return "Scryfall";
@@ -36,6 +34,7 @@ public class ScryfallSearchProvider implements emi.mtg.deckbuilder.view.search.S
 
 	@Override
 	public Predicate<CardInstance> parse(String s) throws IllegalArgumentException {
+		final ScryfallApi api = ScryfallApi.get();
 		try {
 			System.err.printf("Begin Scryfall search: %s", s);
 			PagedList<Card> cards = api.query(s);
