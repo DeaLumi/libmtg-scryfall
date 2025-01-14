@@ -1,9 +1,6 @@
 package emi.lib.mtg.scryfall.api;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.TypeAdapter;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -181,8 +178,8 @@ public class ScryfallApi {
 			public void run() {
 				while (!Thread.interrupted()) {
 					try {
+						Thread.sleep(Math.max(1, nextRequest - System.currentTimeMillis()));
 						Request request = requestQueue.take();
-						request.thenRun(() -> nextRequest = System.currentTimeMillis() + REQUEST_PAUSE);
 
 						try {
 							HttpsURLConnection connection = (HttpsURLConnection) request.url.openConnection();
@@ -212,7 +209,7 @@ public class ScryfallApi {
 							request.completeExceptionally(ioe);
 						}
 
-						Thread.sleep(Math.max(REQUEST_PAUSE, nextRequest - System.currentTimeMillis()));
+						nextRequest = System.currentTimeMillis() + REQUEST_PAUSE;
 					} catch (InterruptedException e) {
 						break;
 					}
