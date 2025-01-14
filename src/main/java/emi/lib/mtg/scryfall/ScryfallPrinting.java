@@ -249,4 +249,9 @@ class ScryfallPrinting implements Card.Printing {
 	public boolean equals(Object obj) {
 		return obj instanceof ScryfallPrinting && (cardJson.id.equals(((ScryfallPrinting) obj).cardJson.id));
 	}
+
+	@Override
+	public Treatment treatment() {
+		return Treatment.None; // TODO Scryfall doesn't separate foil and nonfoil prints. For now, claim none of them are foil.
+	}
 }
