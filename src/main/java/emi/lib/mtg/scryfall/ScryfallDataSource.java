@@ -143,23 +143,23 @@ public class ScryfallDataSource implements DataSource, Updateable {
 
 		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(d -> progress.accept(0.5 * d, "Downloading database..."));
 		cards = cards.stream().filter(card -> !(excludeCard(card) || droppedSets.contains(card.set)))
-		.peek(card -> {
-			// Null out some excess data here to save hard drive space.
-			DROPPED_FORMATS.forEach(f -> card.legalities.remove(f.serialized()));
-			card.purchaseUris = null;
-			card.relatedUris = null;
-			card.printsSearchUri = null;
-			card.rulingsUri = null;
-			card.setSearchUri = null;
+			.peek(card -> {
+				// Null out some excess data here to save hard drive space.
+				DROPPED_FORMATS.forEach(f -> card.legalities.remove(f.serialized()));
+				card.purchaseUris = null;
+				card.relatedUris = null;
+				card.printsSearchUri = null;
+				card.rulingsUri = null;
+				card.setSearchUri = null;
 
-			if (card.allParts != null) {
-				card.allParts.removeIf(p -> "token".equals(p.component) || "combo_piece".equals(p.component));
+				if (card.allParts != null) {
+					card.allParts.removeIf(p -> "token".equals(p.component) || "combo_piece".equals(p.component));
 
-				if (card.allParts.isEmpty()) {
-					card.allParts = null;
+					if (card.allParts.isEmpty()) {
+						card.allParts = null;
+					}
 				}
-			}
-		}).collect(Collectors.toList());
+			}).collect(Collectors.toList());
 
 		serde.writeStartCards(cards.size());
 		int statusCounter = 0;
