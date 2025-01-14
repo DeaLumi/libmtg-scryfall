@@ -24,10 +24,8 @@ public class ScryfallPreferences implements Preferences.Plugin {
 		return "Scryfall";
 	}
 
-	@Override
-	public void preferencesChanged(String pref, Object oldVal, Object newVal) {
-		// Don't care.
-	}
+	@Preference(value="Update Interval (days)", min=1.0, max=365.0, tooltip="The number of days before data is considered old and an update is proposed.")
+	public double updateInterval = 7.0;
 
 	@Preference(value="Disk Encoding", buttonBar=true, tooltip="JSON is human-readable; MessagePack is somewhat faster.\nRequires a restart, and possibly a re-download.")
 	public ScryfallSerde.Implementation serde = ScryfallSerde.Implementation.Json;

@@ -54,8 +54,6 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		return false;
 	}
 
-	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60;
-
 	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
 			GameFormat.Duel,
 			GameFormat.OldSchool,
@@ -190,7 +188,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 
 	@Override
 	public boolean updateAvailable(Path dataDir) {
-		return Util.needsUpdate(dataFile(dataDir), UPDATE_INTERVAL);
+		return Util.needsUpdate(dataFile(dataDir), (long) ScryfallPreferences.get().updateInterval * 24 * 60 * 60);
 	}
 
 	private final Map<UUID, CompletableFuture<emi.lib.mtg.scryfall.api.Card>> await = new Hashtable<>();
