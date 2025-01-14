@@ -2,7 +2,12 @@ package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.enums.Rarity;
 import emi.lib.mtg.enums.Color;
+import emi.mtg.deckbuilder.util.PluginUtils;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -79,5 +84,17 @@ class Util {
 		}
 
 		return to;
+	}
+
+	public static boolean needsUpdate(Path path, long maxAgeSeconds) {
+		try {
+			Instant target = Instant.now().minusSeconds(maxAgeSeconds);
+			Instant jar = Files.getLastModifiedTime(PluginUtils.jarPath(Util.class)).toInstant();
+			Instant file = Files.exists(path) ? Files.getLastModifiedTime(path).toInstant() : Instant.MIN;
+			return jar.isAfter(file) || file.isBefore(target);
+		} catch (IOException ioe) {
+			new IOException(String.format("Unable to check Scryfall JAR or data file %s modified time. Assuming update required.", path.toAbsolutePath()), ioe).printStackTrace();
+			return true;
+		}
 	}
 }

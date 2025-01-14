@@ -12,7 +12,8 @@ import emi.lib.mtg.scryfall.api.enums.SetType;
 import emi.lib.mtg.scryfall.serde.ScryfallSerde;
 import emi.lib.mtg.scryfall.util.CardId;
 import emi.lib.mtg.scryfall.util.MirrorMap;
-import emi.mtg.deckbuilder.util.PluginUtils;
+import emi.mtg.deckbuilder.controller.Context;
+import emi.mtg.deckbuilder.controller.Updateable;
 
 import java.io.IOException;
 import java.net.URL;
@@ -20,7 +21,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,8 +29,7 @@ import java.util.function.DoubleConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ScryfallDataSource implements DataSource {
-	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60 * 1000;
+public class ScryfallDataSource implements DataSource, Updateable {
 	public static boolean excludeCard(emi.lib.mtg.scryfall.api.Card card) {
 		// For now, we exclude tokens from the data source. In the future, I may want to retain these, though...
 		if (card.setType == SetType.Token && !HORDE_SETS.contains(card.set.toLowerCase())) {
@@ -54,6 +53,8 @@ public class ScryfallDataSource implements DataSource {
 
 		return false;
 	}
+
+	private static final long UPDATE_INTERVAL = 7 * 24 * 60 * 60;
 
 	private static final Collection<GameFormat> DROPPED_FORMATS = Arrays.asList(
 			GameFormat.Duel,
@@ -79,6 +80,11 @@ public class ScryfallDataSource implements DataSource {
 	@Override
 	public String toString() {
 		return "Scryfall";
+	}
+
+	@Override
+	public String description() {
+		return "Downloads all cards known to Scryfall.";
 	}
 
 	@Override
@@ -111,7 +117,7 @@ public class ScryfallDataSource implements DataSource {
 	}
 
 	@Override
-	public boolean update(Path dataDir, DoubleConsumer progress) throws IOException {
+	public void update(Path dataDir, Progress progress) throws IOException {
 		ScryfallApi api = ScryfallApi.get();
 		ScryfallSerde serde = ScryfallSerde.get();
 
@@ -135,7 +141,7 @@ public class ScryfallDataSource implements DataSource {
 		for (emi.lib.mtg.scryfall.api.Set set : sets) serde.writeSet(set);
 		serde.writeEndSets();
 
-		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(d -> progress.accept(0.5 * d));
+		List<emi.lib.mtg.scryfall.api.Card> cards = api.defaultCardsBulk(d -> progress.accept(0.5 * d, "Downloading database..."));
 		cards = cards.stream().filter(card -> !(excludeCard(card) || droppedSets.contains(card.set)))
 		.peek(card -> {
 			// Null out some excess data here to save hard drive space.
@@ -162,7 +168,7 @@ public class ScryfallDataSource implements DataSource {
 
 			if (progress != null) {
 				++statusCounter;
-				progress.accept(0.5 + 0.5 * (double) statusCounter / (double) cards.size());
+				progress.accept(0.5 + 0.5 * (double) statusCounter / (double) cards.size(), "Saving cards...");
 			}
 		}
 		serde.writeEndCards();
@@ -174,26 +180,11 @@ public class ScryfallDataSource implements DataSource {
 
 		System.gc();
 		System.gc();
-
-		return true;
 	}
 
 	@Override
-	public boolean needsUpdate(Path dataDir) {
-		try {
-			Instant ref = Instant.now().minusMillis(UPDATE_INTERVAL);
-			Instant version = Files.getLastModifiedTime(PluginUtils.jarPath(ScryfallDataSource.class)).toInstant();
-			if (ref.isBefore(version)) {
-				ref = version;
-			}
-
-			return !Files.exists(dataFile(dataDir)) ||
-					ref.isAfter(Files.getLastModifiedTime(dataFile(dataDir)).toInstant());
-		} catch (IOException ioe) {
-			System.err.println(String.format("Unable to check %s for freshness -- please update Scryfall data.", dataFile(dataDir).toString()));
-			ioe.printStackTrace();
-			return true;
-		}
+	public boolean updateAvailable(Path dataDir) {
+		return Util.needsUpdate(dataFile(dataDir), UPDATE_INTERVAL);
 	}
 
 	private final Map<UUID, CompletableFuture<emi.lib.mtg.scryfall.api.Card>> await = new Hashtable<>();
@@ -565,12 +556,12 @@ public class ScryfallDataSource implements DataSource {
 		long start = System.nanoTime();
 		ScryfallDataSource dataSource = new ScryfallDataSource();
 
-		if (dataSource.needsUpdate(wd)) {
+		if (dataSource.updateAvailable(wd)) {
 			System.out.printf("Begin update()%n");
 			System.gc();
 			System.gc();
 			start = System.nanoTime();
-			dataSource.update(wd, x -> System.out.printf("\rUpdating data: %.2f", x * 100.0));
+			dataSource.update(wd, Progress.cmdLine("Loading Data", 100));
 			System.out.printf("%nupdate() took %.2f seconds%n", (System.nanoTime() - start) / 1e9);
 			System.gc();
 			System.gc();
