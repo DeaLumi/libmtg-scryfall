@@ -150,7 +150,7 @@ class ScryfallFace implements Card.Face {
 
 	@Override
 	public String printedLoyalty() {
-		return or(cardJson.loyalty, "");
+		return or(faceJson != null ? faceJson.loyalty : cardJson.loyalty, "");
 	}
 
 	@Override
