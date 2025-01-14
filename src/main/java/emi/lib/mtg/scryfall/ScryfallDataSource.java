@@ -293,6 +293,9 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		boolean old = jsonCard.frame == CardFrame.Old1993 || jsonCard.frame == CardFrame.Old1997 || jsonCard.frame == CardFrame.Modern2001 || jsonCard.frame == CardFrame.Modern2003;
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
 		faces.stream().forEachOrdered(f -> print.addFace(f, false, (old ? W5_FRAMES_OLD : W5_FRAMES_NEW).get(f.name()), jsonCard, f.faceJson));
+
+		set.printings.put(print.id(), print);
+		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
 		cardNameIndex.put(card.name(), card);
 	}
