@@ -76,6 +76,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 	private final MirrorMap<UUID, ScryfallPrinting> printings = new MirrorMap<>(Hashtable::new);
 	private final MirrorMap<CardId, ScryfallCard> cards = new MirrorMap<>(Hashtable::new);
 	private final MirrorMap<String, ScryfallSet> sets = new MirrorMap<>(Hashtable::new);
+	private final Map<String, ScryfallCard> cardNameIndex = new HashMap<>();
 
 	@Override
 	public String toString() {
@@ -85,6 +86,11 @@ public class ScryfallDataSource implements DataSource, Updateable {
 	@Override
 	public String description() {
 		return "Downloads all cards known to Scryfall.";
+	}
+
+	@Override
+	public Card card(String name, char variation) {
+		return cardNameIndex.get(name);
 	}
 
 	@Override
@@ -288,6 +294,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		ScryfallPrinting print = card.addPrinting(set, jsonCard);
 		faces.stream().forEachOrdered(f -> print.addFace(f, false, (old ? W5_FRAMES_OLD : W5_FRAMES_NEW).get(f.name()), jsonCard, f.faceJson));
 		printings.put(print.id(), print);
+		cardNameIndex.put(card.name(), card);
 	}
 
 	private void createSimple(emi.lib.mtg.scryfall.api.Card jsonCard) {
@@ -306,6 +313,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
+		cardNameIndex.put(card.name(), card);
 	}
 
 	private void createReversible(emi.lib.mtg.scryfall.api.Card jsonCard) {
@@ -321,6 +329,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
+		cardNameIndex.put(card.name(), card);
 	}
 
 	private static boolean isSideways(String typeLine) {
@@ -419,6 +428,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
+		cardNameIndex.put(card.name(), card);
 	}
 
 	private final BiFunction<emi.lib.mtg.scryfall.api.Card, emi.lib.mtg.scryfall.api.Card, ScryfallPrinting> meld = (jsonFront, jsonBack) -> {
@@ -438,6 +448,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		set.printings.put(print.id(), print);
 		set.printingsByCn.put(print.collectorNumber(), print);
 		printings.put(print.id(), print);
+		cardNameIndex.put(card.name(), card);
 
 		return print;
 	};
