@@ -49,6 +49,20 @@ public class ScryfallSearchProvider implements emi.mtg.deckbuilder.view.search.S
 			Set<UUID> ids = cards.stream().map(c -> c.id).collect(Collectors.toSet());
 			System.err.printf("...fetched! Found %d IDs.\n", ids.size());
 			return ci -> ids.contains(ci.id()); // TODO: Wish I matched on set/collector number instead.
+		} catch (ScryfallApi.HttpException httpe) {
+			if (httpe.object != null) {
+				StringBuilder error = new StringBuilder();
+				error.append(httpe.object.details);
+				if (httpe.object.warnings != null && httpe.object.warnings.length > 0) {
+					error.append("\n\nWarnings:");
+					for (String warning : httpe.object.warnings) {
+						error.append("\n• ").append(warning);
+					}
+				}
+				throw new IllegalArgumentException(error.toString());
+			} else {
+				throw new IllegalArgumentException(httpe.getLocalizedMessage(), httpe);
+			}
 		} catch (IOException ioe) {
 			throw new IllegalArgumentException("A network error occurred: " + ioe.getLocalizedMessage(), ioe);
 		}

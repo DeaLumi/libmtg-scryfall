@@ -37,6 +37,39 @@ public class ScryfallApi {
 	private static final URL URL_SETS;
 	private static final URL URL_BULK;
 
+	public static class HttpException extends IOException {
+		public static class ErrorObject {
+			public int status;
+			public String code;
+			public String type;
+			public String details;
+			public String[] warnings;
+		}
+
+		public final URL url;
+		public final int errorCode;
+		public final String errorMessage;
+		public final String responseBody;
+		public final ErrorObject object;
+
+		public HttpException(URL url, int errorCode, String errorMessage, String responseBody) {
+			super(String.format("GET %s returned HTTP %d %s:\n\n%s", url, errorCode, errorMessage, responseBody));
+
+			this.url = url;
+			this.errorCode = errorCode;
+			this.errorMessage = errorMessage;
+			this.responseBody = responseBody;
+
+			ErrorObject obj;
+			try {
+				obj = GSON.fromJson(responseBody, ErrorObject.class);
+			} catch (JsonSyntaxException jse) {
+				obj = null;
+			}
+			this.object = obj;
+		}
+	}
+
 	private static TypeAdapter<Instant> instantAdapter() {
 		return new TypeAdapter<Instant>() {
 			@Override
@@ -167,7 +200,7 @@ public class ScryfallApi {
 								while ((read = err.read(buffer)) >= 0) errStr.append(new String(buffer, 0, read));
 								err.close();
 
-								throw new IOException(String.format("GET %s returned HTTP %d %s:\n--------\n%s\n--------\n", request.url, connection.getResponseCode(), connection.getResponseMessage(), errStr));
+								throw new HttpException(request.url, connection.getResponseCode(), connection.getResponseMessage(), errStr.toString());
 							}
 
 							InputStream input = connection.getInputStream();
@@ -216,7 +249,13 @@ public class ScryfallApi {
 		} catch (InterruptedException e) {
 			return null;
 		} catch (ExecutionException e) {
-			throw new IOException(e.getCause());
+			if (e.getCause() instanceof HttpException) {
+				throw (HttpException) e.getCause();
+			} else if (e.getCause() instanceof IOException) {
+				throw (IOException) e.getCause();
+			} else {
+				throw new IOException(e.getCause());
+			}
 		}
 	}
 
