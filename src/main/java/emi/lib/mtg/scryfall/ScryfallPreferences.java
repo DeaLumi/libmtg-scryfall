@@ -29,4 +29,10 @@ public class ScryfallPreferences implements Preferences.Plugin {
 
 	@Preference(value="Disk Encoding", buttonBar=true, tooltip="JSON is human-readable; MessagePack is somewhat faster.\nRequires a restart, and possibly a re-download.")
 	public ScryfallSerde.Implementation serde = ScryfallSerde.Implementation.Json;
+
+	@Preference(value="Function Tags", tooltip="Comma-separated list of function tags which should be imported from Scryfall.")
+	public String functionTags = "removal, sweeper, draw, ramp, mana dork, mana rock";
+
+	@Preference(value="Art Tags", tooltip="Comma-separated list of art tags which should be imported from Scryfall. CAUTION: Some tags match tens of thousands of total printings!")
+	public String artTags = "squirrel, turtle, lantern";
 }
