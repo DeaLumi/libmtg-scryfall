@@ -25,17 +25,17 @@ import java.util.stream.Collectors;
 public class ScryfallTagSource implements Tags.Provider, Updateable {
 	public static final String TAGS_FILE_NAME = "scryfall-tags.json";
 
-	private transient Map<String, Collection<Card.Printing.Reference>> updatedCardTags;
-	private transient Map<String, Collection<Card.Printing.Reference>> updatedArtTags;
+	private transient Map<String, Collection<Card.Print.Reference>> updatedCardTags;
+	private transient Map<String, Collection<Card.Print.Reference>> updatedArtTags;
 
 	private final Tags.TagGraph<Card> cardTags;
-	private final Tags.TagGraph<Card.Printing> printingTags;
+	private final Tags.TagGraph<Card.Print> printTags;
 
 	public ScryfallTagSource() {
 		this.updatedCardTags = null;
 		this.updatedArtTags = null;
 		this.cardTags = new Tags.TagGraph<>();
-		this.printingTags = new Tags.TagGraph<>();
+		this.printTags = new Tags.TagGraph<>();
 	}
 
 	@Override
@@ -48,7 +48,7 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 		return "Downloads tagged cards according to Scryfall. See preferences to choose which tags are downloaded. May take several minutes!";
 	}
 
-	private static Collection<Card.Printing.Reference> cardReferences(ScryfallApi api, emi.lib.mtg.scryfall.api.Card card) {
+	private static Collection<Card.Print.Reference> cardReferences(ScryfallApi api, emi.lib.mtg.scryfall.api.Card card) {
 		if (card.layout == CardLayout.Meld) {
 			// Meld sucks
 			return card.allParts.stream()
@@ -63,12 +63,12 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 					})
 					.filter(Objects::nonNull)
 					.filter(c -> !ScryfallDataSource.excludeCard(c))
-					.map(c -> Card.Printing.Reference.to(c.name, c.set, c.collectorNumber))
+					.map(c -> Card.Print.Reference.to(c.name, c.set, c.collectorNumber))
 					.collect(Collectors.toList());
 		} else if (card.cardFaces != null && card.cardFaces.size() >= 2 && card.layout != CardLayout.Split) {
-			return Collections.singleton(Card.Printing.Reference.to(card.cardFaces.get(0).name, card.set, card.collectorNumber));
+			return Collections.singleton(Card.Print.Reference.to(card.cardFaces.get(0).name, card.set, card.collectorNumber));
 		} else {
-			return Collections.singleton(Card.Printing.Reference.to(card.name, card.set, card.collectorNumber));
+			return Collections.singleton(Card.Print.Reference.to(card.name, card.set, card.collectorNumber));
 		}
 	}
 
@@ -113,7 +113,7 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 			for (int i = 0; i < cardTags.length; ++i) {
 				String tag = cardTags[i];
 				List<emi.lib.mtg.scryfall.api.Card> matchingCards = cardTaggings.get(tag);
-				List<Card.Printing.Reference> references = new ArrayList<>();
+				List<Card.Print.Reference> references = new ArrayList<>();
 				progress.accept(processed / (double) target, "Fetching \"" + tag + "\"...");
 
 				writer.name(tag);
@@ -122,8 +122,8 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 				for (int j = 0; j < matchingCards.size(); ++j) {
 					emi.lib.mtg.scryfall.api.Card card = matchingCards.get(j);
 					if (ScryfallDataSource.excludeCard(card)) continue; // TODO token
-					// TODO: Printing reference instead of card name (thanks UST)
-					for (Card.Printing.Reference ref : cardReferences(api, card)) {
+					// TODO: Print reference instead of card name (thanks UST)
+					for (Card.Print.Reference ref : cardReferences(api, card)) {
 						writer.value(ref.toString());
 						references.add(ref);
 					}
@@ -141,7 +141,7 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 			for (int i = 0; i < artTags.length; ++i) {
 				String tag = artTags[i];
 				List<emi.lib.mtg.scryfall.api.Card> matchingCards = artTaggings.get(tag);
-				List<Card.Printing.Reference> references = new ArrayList<>();
+				List<Card.Print.Reference> references = new ArrayList<>();
 				progress.accept(processed / (double) target, "Fetching \"" + tag + "\"...");
 
 				writer.name(tag);
@@ -150,7 +150,7 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 				for (int j = 0; j < matchingCards.size(); ++j) {
 					emi.lib.mtg.scryfall.api.Card card = matchingCards.get(j);
 					if (ScryfallDataSource.excludeCard(card)) continue; // TODO token
-					for (Card.Printing.Reference ref : cardReferences(api, card)) {
+					for (Card.Print.Reference ref : cardReferences(api, card)) {
 						writer.value(ref.toString());
 						references.add(ref);
 					}
@@ -185,11 +185,11 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 			progress.accept(0.0);
 
 			for (String tag : updatedCardTags.keySet()) {
-				for (Card.Printing.Reference ref : updatedCardTags.get(tag)) {
-					Card.Printing pr = data.printing(ref);
+				for (Card.Print.Reference ref : updatedCardTags.get(tag)) {
+					Card.Print pr = data.print(ref);
 
 					if (pr == null) {
-						System.err.printf("Couldn't find printing %s to tag with %s! Continuing...%n", ref, tag);
+						System.err.printf("Couldn't find print %s to tag with %s! Continuing...%n", ref, tag);
 						continue;
 					}
 
@@ -202,15 +202,15 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 			updatedCardTags = null;
 
 			for (String tag : updatedArtTags.keySet()) {
-				for (Card.Printing.Reference ref : updatedArtTags.get(tag)) {
-					Card.Printing pr = data.printing(ref);
+				for (Card.Print.Reference ref : updatedArtTags.get(tag)) {
+					Card.Print pr = data.print(ref);
 
 					if (pr == null) {
-						System.err.printf("Couldn't find printing %s to tag with (art tag) %s! Continuing...%n", ref, tag);
+						System.err.printf("Couldn't find print %s to tag with (art tag) %s! Continuing...%n", ref, tag);
 						continue;
 					}
 
-					printingTags.tag(pr, tag);
+					printTags.tag(pr, tag);
 
 					++processed;
 					progress.accept(processed / (double) target);
@@ -249,11 +249,11 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 							while (reader.hasNext()) {
 								String val = reader.nextString();
 								try {
-									// TODO: Printing reference instead of card name
-									Card.Printing.Reference ref = Card.Printing.Reference.valueOf(val);
-									Card.Printing pr = data.printing(ref);
+									// TODO: Print reference instead of card name
+									Card.Print.Reference ref = Card.Print.Reference.valueOf(val);
+									Card.Print pr = data.print(ref);
 									if (pr == null) {
-										System.err.printf("Couldn't find printing %s to tag with %s! Continuing...%n", ref, tag);
+										System.err.printf("Couldn't find print %s to tag with %s! Continuing...%n", ref, tag);
 									} else {
 										cardTags.tag(pr.card(), tag);
 									}
@@ -276,12 +276,12 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 							while (reader.hasNext()) {
 								String val = reader.nextString();
 								try {
-									Card.Printing.Reference ref = Card.Printing.Reference.valueOf(val);
-									Card.Printing pr = data.printing(ref);
+									Card.Print.Reference ref = Card.Print.Reference.valueOf(val);
+									Card.Print pr = data.print(ref);
 									if (pr == null) {
-										System.err.printf("Couldn't find printing %s to tag with (art tag) %s! Continuing...%n", ref, tag);
+										System.err.printf("Couldn't find print %s to tag with (art tag) %s! Continuing...%n", ref, tag);
 									} else {
-										printingTags.tag(pr, tag);
+										printTags.tag(pr, tag);
 									}
 								} catch (IllegalArgumentException iae) {
 									new IOException(String.format("While trying to tag %s with %s. Ignoring.", val, tag), iae).printStackTrace();
@@ -318,13 +318,13 @@ public class ScryfallTagSource implements Tags.Provider, Updateable {
 	}
 
 	@Override
-	public Set<String> tags(Card.Printing printing) {
-		return printingTags.tags(printing);
+	public Set<String> tags(Card.Print print) {
+		return printTags.tags(print);
 	}
 
 	@Override
-	public Set<Card.Printing> printings(String s) {
-		return printingTags.objects(s);
+	public Set<Card.Print> prints(String s) {
+		return printTags.objects(s);
 	}
 
 	public static void main(String[] args) throws IOException {

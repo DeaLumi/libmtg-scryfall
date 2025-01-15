@@ -71,7 +71,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		return Collections.unmodifiableSet(tmp);
 	}
 
-	private final MirrorMap<UUID, ScryfallPrinting> printings = new MirrorMap<>(Hashtable::new);
+	private final MirrorMap<UUID, ScryfallPrint> prints = new MirrorMap<>(Hashtable::new);
 	private final MirrorMap<CardId, ScryfallCard> cards = new MirrorMap<>(Hashtable::new);
 	private final MirrorMap<String, ScryfallSet> sets = new MirrorMap<>(Hashtable::new);
 	private final Map<String, ScryfallCard> cardNameIndex = new HashMap<>();
@@ -97,13 +97,13 @@ public class ScryfallDataSource implements DataSource, Updateable {
 	}
 
 	@Override
-	public Set<? extends Card.Printing> printings() {
-		return printings.valueSet();
+	public Set<? extends Card.Print> prints() {
+		return prints.valueSet();
 	}
 
 	@Override
-	public Card.Printing printing(UUID id) {
-		return printings.get(id);
+	public Card.Print print(UUID id) {
+		return prints.get(id);
 	}
 
 	@Override
@@ -289,12 +289,12 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		List<ScryfallFace> faces = jsonCard.cardFaces.stream().map(jf -> card.addFace(jsonCard, jf, true)).collect(Collectors.toList());
 
 		boolean old = jsonCard.frame == CardFrame.Old1993 || jsonCard.frame == CardFrame.Old1997 || jsonCard.frame == CardFrame.Modern2001 || jsonCard.frame == CardFrame.Modern2003;
-		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		ScryfallPrint print = card.addPrint(set, jsonCard);
 		faces.stream().forEachOrdered(f -> print.addFace(f, false, (old ? W5_FRAMES_OLD : W5_FRAMES_NEW).get(f.name()), jsonCard, f.faceJson));
 
-		set.printings.put(print.id(), print);
-		set.printingsByCn.put(print.collectorNumber(), print);
-		printings.put(print.id(), print);
+		set.prints.put(print.id(), print);
+		set.printsByCn.put(print.collectorNumber(), print);
+		prints.put(print.id(), print);
 		cardNameIndex.put(card.name(), card);
 	}
 
@@ -308,12 +308,12 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard), id -> new ScryfallCard(jsonCard));
 		ScryfallFace front = card.addFace(jsonCard, true);
 
-		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		ScryfallPrint print = card.addPrint(set, jsonCard);
 		ScryfallPrintedFace frontPrint = print.addFace(front, false, isSideways(jsonCard.typeLine) ? StandardFrame.SidewaysFullFace : StandardFrame.FullFace, jsonCard, null);
 
-		set.printings.put(print.id(), print);
-		set.printingsByCn.put(print.collectorNumber(), print);
-		printings.put(print.id(), print);
+		set.prints.put(print.id(), print);
+		set.printsByCn.put(print.collectorNumber(), print);
+		prints.put(print.id(), print);
 		cardNameIndex.put(card.name(), card);
 	}
 
@@ -323,13 +323,13 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonCard.cardFaces.get(0)), id -> new ScryfallCard(jsonCard));
 		ScryfallFace front = card.addFace(jsonCard, jsonCard.cardFaces.get(0), true);
 
-		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		ScryfallPrint print = card.addPrint(set, jsonCard);
 		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(0));
 		ScryfallPrintedFace backPrint = print.addFace(front, true, StandardFrame.FullFace, jsonCard, jsonCard.cardFaces.get(1));
 
-		set.printings.put(print.id(), print);
-		set.printingsByCn.put(print.collectorNumber(), print);
-		printings.put(print.id(), print);
+		set.prints.put(print.id(), print);
+		set.printsByCn.put(print.collectorNumber(), print);
+		prints.put(print.id(), print);
 		cardNameIndex.put(card.name(), card);
 	}
 
@@ -421,18 +421,18 @@ public class ScryfallDataSource implements DataSource, Updateable {
 				throw new IllegalArgumentException("createTwoFace() called with unexpected card layout " + jsonCard.layout);
 		}
 
-		ScryfallPrinting print = card.addPrinting(set, jsonCard);
+		ScryfallPrint print = card.addPrint(set, jsonCard);
 
 		ScryfallPrintedFace firstPrint = print.addFace(first, false, firstFrame, jsonCard, jsonCard.cardFaces.get(0));
 		ScryfallPrintedFace secondPrint = print.addFace(second, back, secondFrame, jsonCard, jsonCard.cardFaces.get(1));
 
-		set.printings.put(print.id(), print);
-		set.printingsByCn.put(print.collectorNumber(), print);
-		printings.put(print.id(), print);
+		set.prints.put(print.id(), print);
+		set.printsByCn.put(print.collectorNumber(), print);
+		prints.put(print.id(), print);
 		cardNameIndex.put(card.name(), card);
 	}
 
-	private final BiFunction<emi.lib.mtg.scryfall.api.Card, emi.lib.mtg.scryfall.api.Card, ScryfallPrinting> meld = (jsonFront, jsonBack) -> {
+	private final BiFunction<emi.lib.mtg.scryfall.api.Card, emi.lib.mtg.scryfall.api.Card, ScryfallPrint> meld = (jsonFront, jsonBack) -> {
 		ScryfallCard card = cards.computeIfAbsent(CardId.of(jsonFront, jsonBack), id -> new ScryfallCard(jsonFront));
 		ScryfallFace front = card.addFace(jsonFront, true);
 		ScryfallFace back = card.addTransformedFace(front, jsonBack, null);
@@ -440,15 +440,15 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		ScryfallSet set = sets.get(jsonFront.set);
 		ScryfallSet backSet = sets.get(jsonBack.set);
 
-		if (set != backSet) throw new IllegalStateException(String.format("Attempt to construct meld printing from two different sets %s and %s", set, backSet));
+		if (set != backSet) throw new IllegalStateException(String.format("Attempt to construct meld print from two different sets %s and %s", set, backSet));
 
-		ScryfallPrinting print = card.addPrinting(set, jsonFront);
+		ScryfallPrint print = card.addPrint(set, jsonFront);
 		ScryfallPrintedFace frontPrint = print.addFace(front, false, StandardFrame.FullFace, jsonFront, null);
 		ScryfallPrintedFace backPrint = print.addFace(back, true, StandardFrame.Meld, jsonBack, null);
 
-		set.printings.put(print.id(), print);
-		set.printingsByCn.put(print.collectorNumber(), print);
-		printings.put(print.id(), print);
+		set.prints.put(print.id(), print);
+		set.printsByCn.put(print.collectorNumber(), print);
+		prints.put(print.id(), print);
 		cardNameIndex.put(card.name(), card);
 
 		return print;
@@ -478,7 +478,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 
 		assert awaitOne != null && awaitOther != null && awaitBack != null : String.format("Impossible meld combination related to %s", jsonCard.name);
 
-		CompletableFuture<ScryfallPrinting> one = awaitOne.thenCombine(awaitBack, meld),
+		CompletableFuture<ScryfallPrint> one = awaitOne.thenCombine(awaitBack, meld),
 				other = awaitOther.thenCombine(awaitBack, meld);
 
 		one.thenAcceptBoth(other, (pr1, pr2) -> {
@@ -497,7 +497,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 	@Override
 	public boolean loadData(Path dataDir, DoubleConsumer progress) throws IOException {
 		this.cards.clear();
-		this.printings.clear();
+		this.prints.clear();
 		this.sets.clear();
 		this.await.clear();
 
@@ -520,7 +520,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 
 		ExecutorService processor = Executors.newCachedThreadPool();
 
-		final double printingCount = serde.readStartCards();
+		final double printCount = serde.readStartCards();
 		final AtomicInteger processedCount = new AtomicInteger();
 		while (serde.hasNextCard()) {
 			emi.lib.mtg.scryfall.api.Card card = serde.nextCard();
@@ -539,7 +539,7 @@ public class ScryfallDataSource implements DataSource, Updateable {
 				if (progress != null) {
 					int x = processedCount.incrementAndGet();
 					if ((x & 0x1FF) == 0) {
-						progress.accept(x / printingCount);
+						progress.accept(x / printCount);
 					}
 				}
 			});
@@ -601,27 +601,27 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		System.gc();
 		System.gc();
 
-		System.out.printf("New: %d sets, %d cards, %d printings%n", dataSource.sets.size(), dataSource.cards.size(), dataSource.printings.size());
+		System.out.printf("New: %d sets, %d cards, %d prints%n", dataSource.sets.size(), dataSource.cards.size(), dataSource.prints.size());
 
 		System.out.println("Checking cards for bad data...");
 
-		for (Card.Printing pr : dataSource.printings()) {
+		for (Card.Print pr : dataSource.prints()) {
 			if (pr.set() == null) {
-				System.out.printf("Card %s printing {%s} has no associated set!\n", pr.card().fullName(), pr.id());
+				System.out.printf("Card %s print {%s} has no associated set!\n", pr.card().fullName(), pr.id());
 			}
 			if (pr.rarity() == null) {
-				System.out.printf("Card %s (%s printing) has no rarity!%n", pr.card().fullName(), pr.set().name());
+				System.out.printf("Card %s (%s print) has no rarity!%n", pr.card().fullName(), pr.set().name());
 			}
 			if (pr.collectorNumber() == null || pr.collectorNumber().isEmpty()) {
-				System.out.printf("Card %s printing %s is missing a collector number.\n", pr.card().fullName(), pr.set().code());
+				System.out.printf("Card %s print %s is missing a collector number.\n", pr.card().fullName(), pr.set().code());
 			}
 		}
 
 		for (emi.lib.mtg.Set set : dataSource.sets()) {
-			HashMap<String, Card.Printing> cns = new HashMap<>();
-			for (Card.Printing pr : set.printings()) {
+			HashMap<String, Card.Print> cns = new HashMap<>();
+			for (Card.Print pr : set.prints()) {
 				if (cns.containsKey(pr.collectorNumber())) {
-					System.out.printf("! Set %s printing %s has the same collector number as %s!\n", set, pr, cns.get(pr.collectorNumber()));
+					System.out.printf("! Set %s print %s has the same collector number as %s!\n", set, pr, cns.get(pr.collectorNumber()));
 				} else {
 					cns.put(pr.collectorNumber(), pr);
 				}
@@ -629,12 +629,12 @@ public class ScryfallDataSource implements DataSource, Updateable {
 		}
 
 		for (emi.lib.mtg.Card card : dataSource.cards()) {
-			HashMap<String, Card.Printing> cns = new HashMap<>();
-			for (Card.Printing pr : card.printings()) {
+			HashMap<String, Card.Print> cns = new HashMap<>();
+			for (Card.Print pr : card.prints()) {
 				if (pr.set() == null) continue;
 
 				if (cns.containsKey(pr.set().code() + " " + pr.collectorNumber())) {
-					System.out.printf("! Card %s printing %s has the same collector number as %s!\n", card, pr, cns.get(pr.set().code() + " " + pr.collectorNumber()));
+					System.out.printf("! Card %s print %s has the same collector number as %s!\n", card, pr, cns.get(pr.set().code() + " " + pr.collectorNumber()));
 				} else {
 					cns.put(pr.set().code() + " " + pr.collectorNumber(), pr);
 				}

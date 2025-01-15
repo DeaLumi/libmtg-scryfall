@@ -44,12 +44,12 @@ class Util {
 		return card.rarity.libMtgRarity;
 	}
 
-	static String cardPrintingKey(String setCode, String collectorNumber) {
+	static String cardPrintKey(String setCode, String collectorNumber) {
 		return setCode.toUpperCase() + " " + collectorNumber;
 	}
 
 	/**
-	 * Utility method to gradually expand a set implementation. To try to keep memory down, cards and printings in this
+	 * Utility method to gradually expand a set implementation. To try to keep memory down, cards and prints in this
 	 * library start with various sets as EMPTY_SETs. Adding an element converts it to a Collections.singleton. After
 	 * that, it's up to the constructor what it becomes. The idea is to minimize the complexity of the used set
 	 * implementations.

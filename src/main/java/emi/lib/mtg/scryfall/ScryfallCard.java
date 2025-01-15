@@ -14,9 +14,9 @@ class ScryfallCard implements Card {
 	private Map<ScryfallFace, ScryfallFace> faces, mainFaces;
 	private Map<ScryfallFace, Set<ScryfallFace>> transformedFaces;
 	private Map<ScryfallFace, ScryfallFace> flippedFaces;
-	private Set<ScryfallPrinting> printings;
-	private final HashMap<UUID, ScryfallPrinting> printingsById;
-	private final HashMap<String, ScryfallPrinting> printingsByCn;
+	private Set<ScryfallPrint> prints;
+	private final HashMap<UUID, ScryfallPrint> printsById;
+	private final HashMap<String, ScryfallPrint> printsByCn;
 	private final EnumMap<Format, Legality> legalities;
 	private final Color.Combination colorIdentity;
 
@@ -26,9 +26,9 @@ class ScryfallCard implements Card {
 		this.mainFaces = Collections.emptyMap();
 		this.transformedFaces = Collections.emptyMap();
 		this.flippedFaces = Collections.emptyMap();
-		this.printings = Collections.emptySet();
-		this.printingsById = new HashMap<>();
-		this.printingsByCn = new HashMap<>();
+		this.prints = Collections.emptySet();
+		this.printsById = new HashMap<>();
+		this.printsByCn = new HashMap<>();
 
 		this.colorIdentity = Util.mapColor(Util.orEmpty(jsonCard.colorIdentity));
 		this.legalities = new EnumMap<>(Format.class);
@@ -85,21 +85,21 @@ class ScryfallCard implements Card {
 		return face;
 	}
 
-	ScryfallPrinting addPrinting(ScryfallSet set, emi.lib.mtg.scryfall.api.Card jsonCard) {
+	ScryfallPrint addPrint(ScryfallSet set, emi.lib.mtg.scryfall.api.Card jsonCard) {
 		if (!oracleId.equals(jsonCard.oracleId())) throw new IllegalArgumentException(String.format("Attempt to add %s to %s when oracle IDs differ.", jsonCard.name, this.fullName()));
-		if (printingsById.containsKey(jsonCard.id)) return printingsById.get(jsonCard.id);
+		if (printsById.containsKey(jsonCard.id)) return printsById.get(jsonCard.id);
 
-		ScryfallPrinting printing = new ScryfallPrinting(set, this, jsonCard);
+		ScryfallPrint printing = new ScryfallPrint(set, this, jsonCard);
 
-		if (printings.isEmpty()) {
-			printings = Collections.singleton(printing);
+		if (prints.isEmpty()) {
+			prints = Collections.singleton(printing);
 		} else {
-			if (printings.size() == 1) printings = new LinkedHashSet<>(printings);
-			printings.add(printing);
+			if (prints.size() == 1) prints = new LinkedHashSet<>(prints);
+			prints.add(printing);
 		}
 
-		printingsById.put(printing.id(), printing);
-		printingsByCn.put(Util.cardPrintingKey(printing.set().code(), printing.collectorNumber()), printing);
+		printsById.put(printing.id(), printing);
+		printsByCn.put(Util.cardPrintKey(printing.set().code(), printing.collectorNumber()), printing);
 
 		return printing;
 	}
@@ -127,18 +127,18 @@ class ScryfallCard implements Card {
 	}
 
 	@Override
-	public Set<ScryfallPrinting> printings() {
-		return printings;
+	public Set<ScryfallPrint> prints() {
+		return prints;
 	}
 
 	@Override
-	public ScryfallPrinting printing(UUID id) {
-		return printingsById.get(id);
+	public ScryfallPrint print(UUID id) {
+		return printsById.get(id);
 	}
 
 	@Override
-	public Printing printing(String setCode, String collectorNumber) {
-		return printingsByCn.get(Util.cardPrintingKey(setCode, collectorNumber));
+	public ScryfallPrint print(String setCode, String collectorNumber) {
+		return printsByCn.get(Util.cardPrintKey(setCode, collectorNumber));
 	}
 
 	@Override

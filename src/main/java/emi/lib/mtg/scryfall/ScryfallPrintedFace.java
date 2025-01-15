@@ -7,9 +7,9 @@ import java.util.Objects;
 
 import static emi.lib.mtg.scryfall.Util.or;
 
-class ScryfallPrintedFace implements Card.Printing.Face {
+class ScryfallPrintedFace implements Card.Print.Face {
 
-	private final ScryfallPrinting printing;
+	private final ScryfallPrint print;
 	private final ScryfallFace face;
 	private final boolean back;
 	private final StandardFrame frame;
@@ -17,18 +17,18 @@ class ScryfallPrintedFace implements Card.Printing.Face {
 	final emi.lib.mtg.scryfall.api.Card cardJson;
 	final emi.lib.mtg.scryfall.api.Card.Face faceJson;
 
-	ScryfallPrintedFace(ScryfallPrinting printing, ScryfallFace face, boolean back, StandardFrame frame, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
+	ScryfallPrintedFace(ScryfallPrint print, ScryfallFace face, boolean back, StandardFrame frame, emi.lib.mtg.scryfall.api.Card cardJson, emi.lib.mtg.scryfall.api.Card.Face faceJson) {
 		this.back = back;
 		this.frame = frame;
-		this.printing = printing;
+		this.print = print;
 		this.face = face;
 		this.cardJson = cardJson;
 		this.faceJson = faceJson;
 	}
 
 	@Override
-	public Card.Printing printing() {
-		return printing;
+	public Card.Print print() {
+		return print;
 	}
 
 	@Override

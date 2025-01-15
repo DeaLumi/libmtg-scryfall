@@ -33,9 +33,9 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private URL smallCardUrl(Card.Printing printing) {
-		if (printing instanceof ScryfallPrinting) {
-			ScryfallPrinting scp = (ScryfallPrinting) printing;
+	private URL smallCardUrl(Card.Print print) {
+		if (print instanceof ScryfallPrint) {
+			ScryfallPrint scp = (ScryfallPrint) print;
 			Set<ScryfallPrintedFace> printedFaces = scp.card().front() != null ? scp.faces(scp.card().front()) : null;
 			return url(scp.cardJson, printedFaces == null || printedFaces.isEmpty() ? null : printedFaces.iterator().next().faceJson, "normal");
 		} else {
@@ -43,7 +43,7 @@ public class ScryfallImageSource implements ImageSource {
 		}
 	}
 
-	private URL largeFaceUrl(Card.Printing.Face printedFace) {
+	private URL largeFaceUrl(Card.Print.Face printedFace) {
 		if (printedFace instanceof ScryfallPrintedFace) {
 			ScryfallPrintedFace spf = (ScryfallPrintedFace) printedFace;
 			return url(spf.cardJson, spf.faceJson, "large");
@@ -64,8 +64,8 @@ public class ScryfallImageSource implements ImageSource {
 	}
 
 	@Override
-	public BufferedImage open(Card.Printing printing) throws IOException {
-		URL url = smallCardUrl(printing);
+	public BufferedImage open(Card.Print print) throws IOException {
+		URL url = smallCardUrl(print);
 
 		if (url == null) {
 			return null;
@@ -81,7 +81,7 @@ public class ScryfallImageSource implements ImageSource {
 	}
 
 	@Override
-	public BufferedImage open(Card.Printing.Face facePrint) throws IOException {
+	public BufferedImage open(Card.Print.Face facePrint) throws IOException {
 		URL url = largeFaceUrl(facePrint);
 
 		if (url == null) {

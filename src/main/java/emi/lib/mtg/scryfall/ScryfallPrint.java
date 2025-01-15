@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class ScryfallPrinting implements Card.Printing {
+class ScryfallPrint implements Card.Print {
 
 	private static class OrdinaryCollectorNumber implements Comparable<OrdinaryCollectorNumber> {
 		public static final Pattern PATTERN = Pattern.compile("(?<prefix>[0-9]?[A-Za-z*]+)?(?<number>[0-9]+)(?<suffix>[A-Za-z*\u2605\u2020\u2021]+)?");
@@ -124,7 +124,7 @@ class ScryfallPrinting implements Card.Printing {
 
 	private int variation;
 
-	ScryfallPrinting(ScryfallSet set, ScryfallCard card, emi.lib.mtg.scryfall.api.Card cardJson) {
+	ScryfallPrint(ScryfallSet set, ScryfallCard card, emi.lib.mtg.scryfall.api.Card cardJson) {
 		this.set = set;
 		this.card = card;
 		this.cardJson = cardJson;
@@ -189,9 +189,9 @@ class ScryfallPrinting implements Card.Printing {
 	@Override
 	public int variation() {
 		if (variation < 0) {
-			Iterator<String> cns = set.printings().stream()
+			Iterator<String> cns = set.prints().stream()
 					.filter(print -> print.card().name().equals(this.card().name()))
-					.map(Card.Printing::collectorNumber)
+					.map(Card.Print::collectorNumber)
 					.sorted(COLLECTOR_NUMBER_COMPARATOR)
 					.iterator();
 
@@ -247,7 +247,7 @@ class ScryfallPrinting implements Card.Printing {
 
 	@Override
 	public boolean equals(Object obj) {
-		return obj instanceof ScryfallPrinting && (cardJson.id.equals(((ScryfallPrinting) obj).cardJson.id));
+		return obj instanceof ScryfallPrint && (cardJson.id.equals(((ScryfallPrint) obj).cardJson.id));
 	}
 
 	@Override

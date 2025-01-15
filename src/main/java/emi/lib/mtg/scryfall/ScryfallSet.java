@@ -13,13 +13,13 @@ class ScryfallSet implements Set {
 
 	private final emi.lib.mtg.scryfall.api.Set setJson;
 
-	final MirrorMap<UUID, ScryfallPrinting> printings;
-	final Map<String, ScryfallPrinting> printingsByCn;
+	final MirrorMap<UUID, ScryfallPrint> prints;
+	final Map<String, ScryfallPrint> printsByCn;
 
 	ScryfallSet(emi.lib.mtg.scryfall.api.Set setJson) {
 		this.setJson = setJson;
-		this.printings = new MirrorMap<>(HashMap::new);
-		this.printingsByCn = new HashMap<>();
+		this.prints = new MirrorMap<>(HashMap::new);
+		this.printsByCn = new HashMap<>();
 	}
 
 	@Override
@@ -48,18 +48,18 @@ class ScryfallSet implements Set {
 	}
 
 	@Override
-	public java.util.Set<? extends Card.Printing> printings() {
-		return printings.valueSet();
+	public java.util.Set<? extends Card.Print> prints() {
+		return prints.valueSet();
 	}
 
 	@Override
-	public Card.Printing printing(UUID id) {
-		return printings.get(id);
+	public Card.Print print(UUID id) {
+		return prints.get(id);
 	}
 
 	@Override
-	public Card.Printing printing(String collectorNumber) {
-		return printingsByCn.get(collectorNumber);
+	public Card.Print print(String collectorNumber) {
+		return printsByCn.get(collectorNumber);
 	}
 
 	@Override
