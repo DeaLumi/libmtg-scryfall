@@ -5,6 +5,7 @@ public enum BorderColor implements ApiEnum {
 	White,
 	Silver,
 	Gold,
+	Yellow,
 	Borderless,
 	Unrecognized;
 
