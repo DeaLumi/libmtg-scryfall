@@ -189,8 +189,8 @@ class ScryfallPrint implements Card.Print {
 	@Override
 	public int variation() {
 		if (variation < 0) {
-			Iterator<String> cns = set.prints().stream()
-					.filter(print -> print.card().name().equals(this.card().name()))
+			Iterator<String> cns = card().prints().stream()
+					.filter(p -> p.set == set)
 					.map(Card.Print::collectorNumber)
 					.sorted(COLLECTOR_NUMBER_COMPARATOR)
 					.iterator();
