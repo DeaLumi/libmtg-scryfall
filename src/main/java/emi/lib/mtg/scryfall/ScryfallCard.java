@@ -1,6 +1,7 @@
 package emi.lib.mtg.scryfall;
 
 import emi.lib.mtg.Card;
+import emi.lib.mtg.Mana;
 import emi.lib.mtg.enums.Color;
 import emi.lib.mtg.game.Format;
 import emi.lib.mtg.scryfall.api.enums.GameFormat;
@@ -19,6 +20,7 @@ class ScryfallCard implements Card {
 	private final HashMap<String, ScryfallPrint> printsByCn;
 	private final EnumMap<Format, Legality> legalities;
 	private final Color.Combination colorIdentity;
+	private Mana.Value manaCost;
 
 	ScryfallCard(emi.lib.mtg.scryfall.api.Card jsonCard) {
 		this.oracleId = jsonCard.oracleId();
@@ -149,6 +151,12 @@ class ScryfallCard implements Card {
 	@Override
 	public Color.Combination colorIdentity() {
 		return this.colorIdentity;
+	}
+
+	@Override
+	public Mana.Value manaCost() {
+		if (manaCost == null) manaCost = Card.super.manaCost();
+		return manaCost;
 	}
 
 	@Override
