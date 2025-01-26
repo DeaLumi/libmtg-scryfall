@@ -21,7 +21,7 @@ public class Card extends ApiObject {
 		public String manaCost;
 		public String typeLine;
 		public String oracleText;
-		public String power, toughness, loyalty;
+		public String power, toughness, loyalty, defense;
 		public Set<Color> colors, colorIndicator;
 
 		/*

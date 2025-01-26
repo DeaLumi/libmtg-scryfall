@@ -155,7 +155,7 @@ class ScryfallFace implements Card.Face {
 
 	@Override
 	public String printedDefense() {
-		return or(cardJson.defense, "");
+		return or(faceJson != null ? faceJson.defense : cardJson.defense, "");
 	}
 
 	@Override
